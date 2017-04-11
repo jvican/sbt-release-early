@@ -1,7 +1,6 @@
 # Release early
 
-> "Release early, release often"
->              - Eric S. Raymond
+> "Release early, release often" - Eric S. Raymond
 
 `sbt-release-early` is a sbt plugin with two goals:
   
