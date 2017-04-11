@@ -1,6 +1,6 @@
 # Release early
 
-![rocket-gif-release-early](https://cloud.githubusercontent.com/assets/2462974/24923810/06c14db8-1ef3-11e7-8ad9-19b4dc614d05.gif)
+![rocket-gif-release-early](https://cloud.githubusercontent.com/assets/2462974/24924159/1d1f4136-1ef4-11e7-8638-39b6fb80f56b.gif)
 
 > "Release early, release often" - Eric S. Raymond
 
