@@ -73,6 +73,7 @@ lazy val `sbt-release-early` = project
     addSbtPlugin("ch.epfl.scala" % "sbt-release" % "1.0.7"),
     addSbtPlugin("me.lessis" % "bintray-sbt" % "0.3.0"),
     addSbtPlugin("me.vican.jorge" % "sbt-drone" % "0.1.1"),
+    addSbtPlugin("com.dwijnand" % "sbt-dynver" % "1.2.0"),
     libraryDependencies ++= testDependencies,
     scriptedLaunchOpts := Seq(
       "-Dplugin.version=" + version.value,

@@ -1,5 +1,7 @@
 # Release early
 
+![rocket-gif-release-early](https://cloud.githubusercontent.com/assets/2462974/24923810/06c14db8-1ef3-11e7-8ad9-19b4dc614d05.gif)
+
 > "Release early, release often" - Eric S. Raymond
 
 `sbt-release-early` is a sbt plugin with two goals:
