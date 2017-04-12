@@ -37,19 +37,10 @@ last git tag). For example, `0.3.0+10-4f489199`, where `10` is the distance
 and the suffix is the commit hash.
 
 Every time you *push a tag* to a branch, `sbt-release-early` will release an
-artifact with the version you've specified, usually a "final" version. For example, `v0.1.0`.
+artifact with that tag version. This feature is usually used to cut final releases,
+for example, `v0.1.0`.
 
-### Version schema
-
-Any version that is not final is considered a snapshot even if it has a stable
-number and lacks the `-SNAPSHOT` suffix. For example, `0.3+10-4f489199` is a
-snapshot. In short, a snapshot version is *a snapshot* of your codebase at any
-time.
-
-Every time you push a commit to a branch, 
-
-
-## Motivation
+### Why this way
 
 `sbt-release-early` takes a distinct approach to releases.
 
@@ -61,4 +52,11 @@ derives the versions of your project from your git tags. This has several benefi
 
 These two and the automatic derivation of version reduce substantially the complexity
 of handling releases.
+
+### Version schema
+
+Any version that is not final is considered a snapshot even if it has a stable
+number and lacks the `-SNAPSHOT` suffix. For example, `0.3+10-4f489199` is a
+snapshot. In short, a snapshot version is *a snapshot* of your codebase at any
+time.
 
