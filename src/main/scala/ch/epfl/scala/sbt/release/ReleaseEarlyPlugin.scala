@@ -51,7 +51,7 @@ object ReleaseEarly {
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
 
   val projectSettings: Seq[Setting[_]] = Seq(
-    Keys.isSnapshot in sbt.Global := Defaults.isSnapshot.value,
+    Keys.isSnapshot := Defaults.isSnapshot.value,
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
@@ -141,8 +141,7 @@ object ReleaseEarly {
             bintrayEnsureLicenses.value
 
             // There is no way to check if the logger has errors...
-            if (errors != 0)
-              sys.error(Feedback.fixRequirementErrors)
+            if (errors > 0) sys.error(Feedback.fixRequirementErrors)
           }
         } else Def.task(())
       }
@@ -173,8 +172,8 @@ object ReleaseEarly {
               logger.error(Feedback.missingSonatypeCredentials)
             }
 
-            if (errors != 0)
-              Feedback.fixRequirementErrors
+            // There is no way to check if the logger has errors...
+            if (errors > 0) sys.error(Feedback.fixRequirementErrors)
           }
         } else Def.task(())
       }
