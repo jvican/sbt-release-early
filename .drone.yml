@@ -11,7 +11,7 @@ pipeline:
   build:
     image: scalacenter/scala:1.1
     commands:
-      - sbt clean test scripted
+      - sbt clean
 
   sftp_cache:
     image: plugins/sftp-cache
