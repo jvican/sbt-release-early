@@ -1,6 +1,6 @@
 # Meet `sbt-release-early` [![Build Status](https://platform-ci.scala-lang.org/api/badges/scalacenter/sbt-release-early/status.svg)](https://platform-ci.scala-lang.org/scalacenter/sbt-release-early)
 
-`sbt-release-early` is an sbt plugin to help you follow the maxim
+`sbt-release-early` is an sbt plugin to follow the maxim
 `"Release early, release often"`. The major goal is to provide out-of-the-box
 support for automatic releases, with some room for customization.
 
