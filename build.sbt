@@ -50,18 +50,14 @@ lazy val commonSettings = Seq(
   testOptions in Test += Tests.Argument("-oD")
 )
 
-lazy val testDependencies = Seq(
-  "org.scalatest" %% "scalatest" % "3.0.0" % Test,
-  "junit" % "junit" % "4.12" % Test
-)
-
 lazy val noPublish = Seq(
   publishArtifact := false,
   publish := {},
   publishLocal := {}
 )
 
-lazy val allSettings = commonSettings ++ buildSettings ++ publishSettings
+lazy val allSettings: Seq[Setting[_]] =
+  commonSettings ++ buildSettings ++ publishSettings
 
 lazy val `sbt-release-early` = project
   .in(file("."))
@@ -74,13 +70,10 @@ lazy val `sbt-release-early` = project
     addSbtPlugin("me.lessis" % "bintray-sbt" % "0.3.0"),
     addSbtPlugin("me.vican.jorge" % "sbt-drone" % "0.1.1"),
     addSbtPlugin("com.dwijnand" % "sbt-dynver" % "1.2.0"),
-    libraryDependencies ++= testDependencies,
     scriptedLaunchOpts := Seq(
       "-Dplugin.version=" + version.value,
       "-Xmx1g",
-      "-Xss16m",
-      "-Dplatform.debug=true",
-      "-Dplatform.test=true"
+      "-Xss16m"
     ),
     scriptedBufferLog := false,
     fork in Test := true
