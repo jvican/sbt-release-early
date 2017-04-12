@@ -51,7 +51,6 @@ object ReleaseEarly {
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
 
   val projectSettings: Seq[Setting[_]] = Seq(
-    Keys.isSnapshot := Defaults.isSnapshot.value,
     Keys.isSnapshot in sbt.Global := Defaults.isSnapshot.value,
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
@@ -84,7 +83,10 @@ object ReleaseEarly {
         info.ref.value.startsWith("v") &&
         (info.commitSuffix.distance <= 0 || info.commitSuffix.sha.isEmpty)
       }
-      !isStable.exists(stable => stable || Keys.isSnapshot.value)
+      val isNewSnapshot =
+        isStable.map(stable => !stable || Keys.isSnapshot.value)
+      // If it's not a regular snapshot and stable, then it's dynver snapshot
+      isNewSnapshot.getOrElse(true)
     }
 
     val releaseEarlyEnableLocalReleases: Def.Initialize[Boolean] =
