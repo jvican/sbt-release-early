@@ -50,6 +50,7 @@ object ReleaseEarly {
 
   val projectSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
+    Keys.isSnapshot in sbt.Global := Defaults.isSnapshot.value,
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
@@ -76,11 +77,11 @@ object ReleaseEarly {
 
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
-      val customIsSnapshot = DynVer.dynverGitDescribeOutput.value.map { info =>
+      val isStable = DynVer.dynverGitDescribeOutput.value.map { info =>
         info.ref.value.startsWith("v") &&
         (info.commitSuffix.distance <= 0 || info.commitSuffix.sha.isEmpty)
       }
-      customIsSnapshot.getOrElse(Keys.isSnapshot.value)
+      !isStable.exists(stable => stable || Keys.isSnapshot.value)
     }
 
     val releaseEarlyEnableLocalReleases: Def.Initialize[Boolean] =
