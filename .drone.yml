@@ -9,8 +9,9 @@ pipeline:
       - /drone/.git
 
   build:
-    image: scalacenter/scala:1.1
+    image: scalacenter/scala:1.2
     commands:
+      - /usr/local/bin/store_credentials.sh 
       - sbt clean
 
   sftp_cache:
