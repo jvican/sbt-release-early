@@ -37,6 +37,8 @@ object ReleaseEarlyKeys {
       taskKey("Validate the data to generate a POM file.")
     val releaseEarlySyncToMaven: TaskKey[Unit] =
       taskKey("Synchronize to Maven Central.")
+    val releaseEarlyCheckRequirements: TaskKey[Unit] =
+      taskKey("Check the requirements of the environment.")
   }
 }
 
@@ -57,7 +59,8 @@ object ReleaseEarly {
     SbtRelease.releaseProcess := Defaults.releaseProcess,
     releaseEarlyKeyedProcess := Defaults.releaseEarlyKeyedProcess.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
-    releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value
+    releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
+    releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
@@ -133,9 +136,35 @@ object ReleaseEarly {
       }
     }
 
+    val releaseEarlyCheckRequirements: Def.Initialize[Task[Unit]] = {
+      import scala.util.control.Exception.catching
+      Def.taskDyn {
+        // Don't run task on subprojects that don't publish
+        if (Keys.publishArtifact.value) {
+          Def.task {
+            val logger = Keys.state.value.log
+            val bintrayCredentials =
+              catching(classOf[NoSuchElementException])
+                .opt(Bintray.bintrayEnsureCredentials.value)
+            if (bintrayCredentials.isEmpty) {
+              logger.error(Feedback.missingBintrayCredentials)
+            }
+
+            // We cannot cache this, bintray cache is private.
+            val sonatypeCredentials = getSonatypeCredentials
+            if (sonatypeCredentials.isEmpty &&
+                !isSnapshot.value && // We don't sync in snapshots
+                !Keys.state.value.interactive) {
+              logger.error(Feedback.missingSonatypeCredentials)
+            }
+          }
+        } else Def.task(())
+      }
+    }
+
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
-        if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value)
+        if (ThisPluginKeys.releaseEarlyInsideCI.value && !isSnapshot.value)
           bintray.BintrayKeys.bintraySyncMavenCentral
         else Def.task(())
       }
@@ -154,6 +183,7 @@ object ReleaseEarly {
       * own from scratch. This is accessible from `releaseEarlyKeyedProcess`. */
     val releaseProcessKeys: Seq[AttributeKey[_]] = {
       List(
+        ThisPluginKeys.releaseEarlyCheckRequirements.key,
         DynVer.dynverAssertVersion.key,
         AttributeKey("setDynVersion", "Release step to set dynver versions."),
         ThisPluginKeys.releaseEarlyValidatePom.key,
@@ -178,6 +208,7 @@ object ReleaseEarly {
     val releaseProcess: Seq[ReleaseStep] = {
       import sbtrelease.ReleaseStateTransformations._
       List[ReleaseStep](
+        releaseStepTask(ThisPluginKeys.releaseEarlyCheckRequirements),
         releaseStepTask(DynVer.dynverAssertVersion),
         setDynVersion,
         releaseStepTask(ThisPluginKeys.releaseEarlyValidatePom),
@@ -206,6 +237,7 @@ object ReleaseEarly {
 
 trait Helper {
   import sbt.State
+
   protected def runCommand(command: String): (State) => State = { st: State =>
     import sbt.complete.Parser
     @annotation.tailrec
@@ -228,4 +260,26 @@ trait Helper {
   import scala.xml.NodeSeq
   protected def missingNode(pom: NodeSeq, label: String): Boolean =
     pom.\\(label).isEmpty
+
+  /** Get Sonatype credentials from the environment. Order:
+    *
+    *   1. System properties.
+    *   2. Environment variables.
+    *
+    * This code is copy-pasted from sbt-bintray and is slightly modified.
+    */
+  protected def getSonatypeCredentials: Option[(String, String)] = {
+    val propsCredentials: Option[(String, String)] = {
+      for {
+        name <- sys.props.get("sona.user")
+        pass <- sys.props.get("sona.pass")
+      } yield (name, pass)
+    }
+    propsCredentials.orElse {
+      for {
+        name <- sys.env.get("SONA_USER")
+        pass <- sys.env.get("SONA_PASS")
+      } yield (name, pass)
+    }
+  }
 }
