@@ -3,6 +3,8 @@ $ exec git remote add origin https://github.com/jvican/stoml
 # Important to fetch with tags
 $ exec git fetch --tags
 $ exec git checkout -t origin/sbt-release-early-simple
+$ exec git add test
+$ exec git commit -m "Creating a new commit hash"
 
 > show version
 > +test
