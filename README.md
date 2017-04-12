@@ -1,4 +1,4 @@
-# Meet `sbt-release-early`
+# Meet `sbt-release-early` [![Build Status](https://platform-ci.scala-lang.org/api/badges/scalacenter/sbt-release-early/status.svg)](https://platform-ci.scala-lang.org/scalacenter/sbt-release-early)
 
 `sbt-release-early` is an sbt plugin to help you follow the maxim
 `"Release early, release often"`. The major goal is to provide out-of-the-box
@@ -8,12 +8,23 @@ support for automatic releases, with some room for customization.
 
 Not ready yet. Coming soon.
 
+## Dependencies
+
+This plugin relies on the following sbt plugins:
+
+* [`sbt-dynver`](https://github.com/dwijnand/sbt-dynver), version `0.2.0`.
+* [`sbt-release`](https://github.com/sbt/sbt-release), version `1.0.7`.
+* [`sbt-bintray`](https://github.com/sbt/sbt-bintray), version `0.3.0`.
+
+If you already depend on them, remove them from your `plugins.sbt` file.
+
 ## Requirements
 
 If you want to use `sbt-release-early`, you need to:
   
 * Use git and have it in the `PATH`.
 * Have a [Bintray](https://github.com/sbt/sbt-bintray) account.
+* Remove plugins on which `sbt-release-early` already depends on.
  
 To synchronize your artifacts with Maven Central, you need a [Sonatype](https://www.sonatype.com/)
 account. This feature is optional, but enabled by default for releases via tag.
