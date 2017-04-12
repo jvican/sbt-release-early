@@ -29,4 +29,7 @@ object Feedback {
       |
       |Otherwise they cannot be fetched programmatically.
     """.stripMargin.trim
+
+  val fixRequirementErrors =
+    "Found errors that need to be fixed before proceeding."
 }

@@ -117,20 +117,30 @@ object ReleaseEarly {
         // Don't run task on subprojects that don't publish
         if (Keys.publishArtifact.value) {
           Def.task {
+            val logger = Keys.state.value.log
+            var errors = 0
             if (Keys.scmInfo.value.isEmpty &&
                 missingNode(Keys.pomExtra.value, "scm")) {
-              sys.error(Feedback.forceDefinitionOfScmInfo)
+              errors += 1
+              logger.error(Feedback.forceDefinitionOfScmInfo)
             }
             if (Keys.developers.value.isEmpty &&
                 missingNode(Keys.pomExtra.value, "developers")) {
-              sys.error(Feedback.forceDefinitionOfDevelopers)
+              errors += 1
+              logger.error(Feedback.forceDefinitionOfDevelopers)
             }
             if (Keys.licenses.value.isEmpty &&
                 missingNode(Keys.pomExtra.value, "licenses")) {
-              sys.error(Feedback.forceValidLicense)
+              errors += 1
+              logger.error(Feedback.forceValidLicense)
             }
+
             // Ensure licenses before releasing
             bintrayEnsureLicenses.value
+
+            // There is no way to check if the logger has errors...
+            if (errors != 0)
+              sys.error(Feedback.fixRequirementErrors)
           }
         } else Def.task(())
       }
@@ -142,21 +152,27 @@ object ReleaseEarly {
         // Don't run task on subprojects that don't publish
         if (Keys.publishArtifact.value) {
           Def.task {
+            var errors = 0
             val logger = Keys.state.value.log
             val bintrayCredentials =
               catching(classOf[NoSuchElementException])
                 .opt(Bintray.bintrayEnsureCredentials.value)
             if (bintrayCredentials.isEmpty) {
+              errors += 1
               logger.error(Feedback.missingBintrayCredentials)
             }
 
             // We cannot cache this, bintray cache is private.
             val sonatypeCredentials = getSonatypeCredentials
             if (sonatypeCredentials.isEmpty &&
-                !isSnapshot.value && // We don't sync in snapshots
+                !Keys.isSnapshot.value && // We don't sync in snapshots
                 !Keys.state.value.interactive) {
+              errors += 1
               logger.error(Feedback.missingSonatypeCredentials)
             }
+
+            if (errors != 0)
+              Feedback.fixRequirementErrors
           }
         } else Def.task(())
       }
@@ -164,7 +180,7 @@ object ReleaseEarly {
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
-        if (ThisPluginKeys.releaseEarlyInsideCI.value && !isSnapshot.value)
+        if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value)
           bintray.BintrayKeys.bintraySyncMavenCentral
         else Def.task(())
       }
