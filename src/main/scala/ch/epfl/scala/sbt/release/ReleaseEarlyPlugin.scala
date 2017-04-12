@@ -31,7 +31,8 @@ object ReleaseEarlyKeys {
   }
 
   trait ReleaseEarlyTasks {
-    val releaseEarly: TaskKey[Unit] = taskKey("Release early, release often.")
+    val releaseEarly: TaskKey[Unit] =
+      taskKey("Release early, release often.")
     val releaseEarlyValidatePom: TaskKey[Unit] =
       taskKey("Validate the data to generate a POM file.")
     val releaseEarlySyncToMaven: TaskKey[Unit] =
@@ -40,7 +41,7 @@ object ReleaseEarlyKeys {
 }
 
 object ReleaseEarly {
-  import sbt.{Keys, AttributeKey}
+  import sbt.{Keys, AttributeKey, State}
 
   import ReleaseEarlyPlugin.autoImport._
   import sbtrelease.ReleasePlugin.{autoImport => SbtRelease}
@@ -54,11 +55,24 @@ object ReleaseEarly {
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     SbtRelease.releaseProcess := Defaults.releaseProcess,
     releaseEarlyKeyedProcess := Defaults.releaseEarlyKeyedProcess.value,
-    releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value
+    releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
+    releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
-    import ReleaseEarlyPlugin.{autoImport => ShadedReleaseEarly}
+    import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
+
+    // Currently unused, but stays here for future features
+    val dynVer: Def.Initialize[String] = Def.setting {
+      import sbtdynver.{DynVer => OriginalDynVer}
+      val customVersion = DynVer.dynverGitDescribeOutput.value.map { info =>
+        // Use '+' for the distance because it is semver compatible
+        val commitPart = info.commitSuffix.mkString("+", "+", "")
+        info.ref.dropV.value + commitPart + info.dirtySuffix.value
+      }
+      customVersion.getOrElse(
+        OriginalDynVer.fallback(DynVer.dynverCurrentDate.value))
+    }
 
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
@@ -76,23 +90,42 @@ object ReleaseEarly {
       Def.setting(sys.env.get("CI").isDefined)
 
     val releaseEarly: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      if (!releaseEarlyInsideCI.value &&
-          !releaseEarlyEnableLocalReleases.value)
+      if (!ThisPluginKeys.releaseEarlyInsideCI.value &&
+          !ThisPluginKeys.releaseEarlyEnableLocalReleases.value)
         Def.task(sys.error(Feedback.OnlyCI))
       else Def.task(runCommand("release")(Keys.state.value))
     }
 
+    /** Validate POM files for synchronization with Maven Central.
+      *
+      * Items required:
+      *   - Coordinates: groupId, artifactId, version.
+      *   - Project: name, description, url.
+      *   - License: name, url.
+      *   - Developer information: name, email, organization, organizationUrl.
+      *   - SCM: connection, developerConnection, url.
+      *
+      * From: https://blog.idrsolutions.com/2015/06/how-to-upload-your-java-artifact-to-maven-central/.
+      */
     val releaseEarlyValidatePom: Def.Initialize[Task[Unit]] = {
-      import Keys.{publishArtifact, scmInfo, licenses}
       import bintray.BintrayKeys.bintrayEnsureLicenses
       Def.taskDyn {
-        // Avoid failing on root
-        if (publishArtifact.value) {
+        // Don't run task on subprojects that don't publish
+        if (Keys.publishArtifact.value) {
           Def.task {
-            if (scmInfo.value.isEmpty)
+            if (Keys.scmInfo.value.isEmpty &&
+                missingNode(Keys.pomExtra.value, "scm")) {
               sys.error(Feedback.forceDefinitionOfScmInfo)
-            if (licenses.value.isEmpty)
+            }
+            if (Keys.developers.value.isEmpty &&
+                missingNode(Keys.pomExtra.value, "developers")) {
+              sys.error(Feedback.forceDefinitionOfDevelopers)
+            }
+            if (Keys.licenses.value.isEmpty &&
+                missingNode(Keys.pomExtra.value, "licenses")) {
               sys.error(Feedback.forceValidLicense)
+            }
+            // Ensure licenses before releasing
             bintrayEnsureLicenses.value
           }
         } else Def.task(())
@@ -101,25 +134,32 @@ object ReleaseEarly {
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
-        if (releaseEarlyInsideCI.value)
+        if (ThisPluginKeys.releaseEarlyInsideCI.value)
           bintray.BintrayKeys.bintraySyncMavenCentral
         else Def.task(())
       }
     }
 
+    val setDynVersion: SbtRelease.ReleaseStep = { (st: State) =>
+      val extracted = sbt.Project.extract(st)
+      val releaseVersion = extracted.get(Keys.version)
+      // Trick sbt release -- next version is not used.
+      val nextVersion = releaseVersion
+      st.put(SbtRelease.ReleaseKeys.versions, (releaseVersion, nextVersion))
+    }
+
     /** Define keys for every release step so that users of the plugin can
       * programmatically manipulate the release pipeline without making their
-      * own from scratch. This is accessible from `releaseEarlyKeyedProcess`.
-      */
+      * own from scratch. This is accessible from `releaseEarlyKeyedProcess`. */
     val releaseProcessKeys: Seq[AttributeKey[_]] = {
       List(
-        AttributeKey("inquireVersions", "Release step to inquire versions."),
         DynVer.dynverAssertVersion.key,
-        ShadedReleaseEarly.releaseEarlyValidatePom.key,
+        AttributeKey("setDynVersion", "Release step to set dynver versions."),
+        ThisPluginKeys.releaseEarlyValidatePom.key,
         AttributeKey("checkSnapshotDependencies", "Check snapshots."),
         AttributeKey("publishArtifacts", "Publish all artifacts."),
         Bintray.bintrayRelease.key,
-        ShadedReleaseEarly.releaseEarlySyncToMaven.key
+        ThisPluginKeys.releaseEarlySyncToMaven.key
       )
     }
 
@@ -137,13 +177,13 @@ object ReleaseEarly {
     val releaseProcess: Seq[ReleaseStep] = {
       import sbtrelease.ReleaseStateTransformations._
       List[ReleaseStep](
-        inquireVersions,
         releaseStepTask(DynVer.dynverAssertVersion),
-        releaseStepTask(ShadedReleaseEarly.releaseEarlyValidatePom),
+        setDynVersion,
+        releaseStepTask(ThisPluginKeys.releaseEarlyValidatePom),
         checkSnapshotDependencies,
         publishArtifacts,
         releaseStepTask(Bintray.bintrayRelease),
-        releaseStepTask(ShadedReleaseEarly.releaseEarlySyncToMaven)
+        releaseStepTask(ThisPluginKeys.releaseEarlySyncToMaven)
       )
     }
 
@@ -155,7 +195,7 @@ object ReleaseEarly {
     }
 
     val saneDefaults: Seq[Setting[_]] = Seq(
-      // We want to cross-build at the CI level, using parallelism
+      // We want to cross-build at the CI level, using different jobs
       SbtRelease.releaseCrossBuild := false,
       SbtRelease.releasePublishArtifactsAction := Keys.publish.value,
       Bintray.bintrayOmitLicense := false
@@ -183,4 +223,8 @@ trait Helper {
     runCommand0(command, st.copy(remainingCommands = Nil))
       .copy(remainingCommands = st.remainingCommands)
   }
+
+  import scala.xml.NodeSeq
+  protected def missingNode(pom: NodeSeq, label: String): Boolean =
+    pom.\\(label).isEmpty
 }

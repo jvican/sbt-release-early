@@ -1,0 +1,8 @@
+$ exec git init .
+$ exec git remote add origin https://github.com/jvican/stoml
+# Important to fetch with tags
+$ exec git fetch --tags
+$ exec git checkout -t origin/sbt-release-early-simple
+
+> show version
+> releaseEarly
