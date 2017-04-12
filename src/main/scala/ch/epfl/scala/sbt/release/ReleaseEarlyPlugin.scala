@@ -134,7 +134,7 @@ object ReleaseEarly {
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
-        if (ThisPluginKeys.releaseEarlyInsideCI.value)
+        if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value)
           bintray.BintrayKeys.bintraySyncMavenCentral
         else Def.task(())
       }
