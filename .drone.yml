@@ -10,6 +10,7 @@ pipeline:
 
   build:
     image: scalacenter/scala:1.2
+    pull: true
     commands:
       - /usr/local/bin/store_credentials.sh 
       - sbt clean
