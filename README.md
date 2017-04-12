@@ -24,7 +24,6 @@ If you want to use `sbt-release-early`, you need to:
   
 * Use git and have it in the `PATH`.
 * Have a [Bintray](https://github.com/sbt/sbt-bintray) account.
-* Remove plugins on which `sbt-release-early` already depends on.
  
 To synchronize your artifacts with Maven Central, you need a [Sonatype](https://www.sonatype.com/)
 account. This feature is optional, but enabled by default for releases via tag.
@@ -44,7 +43,7 @@ for example, `v0.1.0`.
 
 `sbt-release-early` takes a distinct approach to releases.
 
-While some projects decide to include the versions in sbt files, `sbt-release-early`
+While some projects decide to declare versions in sbt files, `sbt-release-early`
 derives the versions of your project from your git tags. This has several benefits:
 
 1. Reproducibility.
