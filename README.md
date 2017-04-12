@@ -1,6 +1,6 @@
-# Release early
+# Release early with sbt
 
-![rocket-gif-release-early](https://cloud.githubusercontent.com/assets/2462974/24924159/1d1f4136-1ef4-11e7-8638-39b6fb80f56b.gif)
+![zwukqyioyvrqu](https://cloud.githubusercontent.com/assets/2462974/24969890/a3e68c24-1fb2-11e7-823b-dea3ff4aeaac.gif)
 
 > "Release early, release often" - Eric S. Raymond
 
