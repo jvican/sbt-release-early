@@ -47,16 +47,21 @@ for example, `v0.1.0`.
 While some projects decide to include the versions in sbt files, `sbt-release-early`
 derives the versions of your project from your git tags. This has several benefits:
 
-1. Tag uniqueness. Git prevents you from trying to release a version twice.
-2. Both you and the CI don't need to push commits just to bump up versions.
+1. Reproducibility.
+2. Tag uniqueness. Git prevents you from trying to release a version twice.
+3. Both you and the CI don't need to push commits just to bump up versions.
+4. The tag history shows all the released versions over the time of a project.
 
-These two and the automatic derivation of version reduce substantially the complexity
-of handling releases.
+These three and the automatic derivation of version reduce substantially the complexity
+of handling releases. For example, implementing automatic MiMa checks is trivial --
+instead of resolving latest jar or interfacing with web APIs, you can get the
+latest tag from the git history.
 
 ### Version schema
 
 Any version that is not final is considered a snapshot even if it has a stable
 number and lacks the `-SNAPSHOT` suffix. For example, `0.3+10-4f489199` is a
-snapshot. In short, a snapshot version is *a snapshot* of your codebase at any
+snapshot. You could say this plugin takes the most literal definition of snapshot,
+where a snapshot version is *a snapshot* of your codebase at any
 time.
 
