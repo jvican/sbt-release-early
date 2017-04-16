@@ -1,15 +1,6 @@
 package ch.epfl.scala.sbt.release
 
-import scala.language.existentials
-import sbt.{
-  AutoPlugin,
-  Def,
-  PluginTrigger,
-  Plugins,
-  Setting,
-  Task,
-  TaskSequential
-}
+import sbt.{ AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task }
 
 object ReleaseEarlyPlugin extends AutoPlugin {
   object autoImport
@@ -158,7 +149,7 @@ object ReleaseEarly {
         Def.taskDyn {
           logger.info(Feedback.logReleaseEarly(Keys.name.value))
           // Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference'
-          val DynamicDef = new TaskSequential {}
+          val DynamicDef = new sbt.TaskSequential {}
           DynamicDef.sequential(initializedSteps, Def.task(()))
         }
       }
