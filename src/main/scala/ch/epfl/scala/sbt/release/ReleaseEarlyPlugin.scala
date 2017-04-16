@@ -240,9 +240,15 @@ trait Helper {
     val bintrayCredentials = catching(classOf[NoSuchElementException])
       .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
 
-    val sonatypeCredentials = getSonatypeCredentials
+    val sonatypeCredentials = getSonatypeCredentials.orElse {
+      // Get extra credentials from optional environment variables
+      val extraCredentials = getExtraSonatypeCredentials
+      extraCredentials.foreach(persistExtraSonatypeCredentials)
+      extraCredentials
+    }
+
     // If not interactive, it means input has to come from environment
-    val checkSonatype: Boolean = !Keys.isSnapshot.value &&
+    val checkSonatype = !Keys.isSnapshot.value &&
       sonatypeCredentials.isEmpty && !Keys.state.value.interactive
 
     val Checks = List(
@@ -298,6 +304,29 @@ trait Helper {
   protected def missingNode(pom: NodeSeq, label: String): Boolean =
     pom.\\(label).isEmpty
 
+  /** Get extra sonatype credentials for those that dislike `SONA_*` and
+    * system properties. The extra keys start with `SONATYPE` instead of `SONA`.
+    */
+  protected def getExtraSonatypeCredentials: Option[(String, String)] = {
+    for {
+      name <- sys.env.get("SONATYPE_USER")
+      password <- sys.env.get("SONATYPE_PASSWORD")
+    } yield (name, password)
+  }
+
+  private val PropertyKeys = ("sona.user", "sona.pass")
+
+  /** Persist extra sonatype credentials reusing the existing system properties.
+    *
+    * As we cannot access the sbt-bintray cache, we need to use the existing
+    * infrastructure to support these extra environment variables.
+    */
+  protected def persistExtraSonatypeCredentials(
+      credentials: (String, String)): Unit = {
+    sys.props += PropertyKeys._1 -> credentials._1
+    sys.props += PropertyKeys._2 -> credentials._2
+  }
+
   /** Get Sonatype credentials from environment in the same way as sbt-bintray:
     *
     *   1. System properties.
@@ -308,8 +337,8 @@ trait Helper {
   protected def getSonatypeCredentials: Option[(String, String)] = {
     val propsCredentials: Option[(String, String)] = {
       for {
-        name <- sys.props.get("sona.user")
-        pass <- sys.props.get("sona.pass")
+        name <- sys.props.get(PropertyKeys._1)
+        pass <- sys.props.get(PropertyKeys._2)
       } yield (name, pass)
     }
     propsCredentials.orElse {
