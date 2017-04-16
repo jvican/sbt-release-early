@@ -28,6 +28,8 @@ object ReleaseEarlyKeys {
       settingKey("Bypass snapshots check, not failing if snapshots are found.")
     val releaseEarlyProcess: SettingKey[Seq[TaskKey[Unit]]] =
       settingKey("Release process executed by `releaseEarly`.")
+    val releaseEarlyRemoteSignature: SettingKey[Boolean] =
+      settingKey("Run `bintrayRemoteSign` on stable (git tag-baesd) versions.")
   }
 
   trait ReleaseEarlyTasks {
@@ -68,11 +70,16 @@ object ReleaseEarly {
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
-    releaseEarlyProcess := Defaults.releaseEarlyProcess.value
+    releaseEarlyProcess := Defaults.releaseEarlyProcess.value,
+    releaseEarlyRemoteSignature := Defaults.releaseEarlyRemoteSignature.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
     import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
+
+    /* Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference' when
+     * used inside `Def.taskDyn`. This is pending to be reported upstream. */
+    private val StableDef = new sbt.TaskSequential {}
 
     // Currently unused, but stays here for future features
     val dynVer: Def.Initialize[String] = Def.setting {
@@ -118,7 +125,17 @@ object ReleaseEarly {
       }
     }
 
-    val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Keys.publish
+    val releaseEarlyRemoteSignature: Def.Initialize[Boolean] =
+      Def.setting(false)
+
+    val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
+      import com.typesafe.sbt.SbtPgp.autoImport.PgpKeys
+      if (!Keys.isSnapshot.value) {
+        if (!ThisPluginKeys.releaseEarlyRemoteSignature.value)
+          PgpKeys.publishSigned
+        else StableDef.sequential(Keys.publish, Bintray.bintrayRemoteSign)
+      } else Keys.publish
+    }
 
     val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
       Def.setting(
@@ -148,9 +165,7 @@ object ReleaseEarly {
         val initializedSteps = steps.map(_.toTask)
         Def.taskDyn {
           logger.info(Feedback.logReleaseEarly(Keys.name.value))
-          // Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference'
-          val DynamicDef = new sbt.TaskSequential {}
-          DynamicDef.sequential(initializedSteps, Def.task(()))
+          StableDef.sequential(initializedSteps, Def.task(()))
         }
       }
     }
