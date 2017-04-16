@@ -13,7 +13,7 @@ Not ready yet. Coming soon.
 This plugin relies on the following sbt plugins:
 
 * [`sbt-dynver`](https://github.com/dwijnand/sbt-dynver), version `0.2.0`.
-* [`sbt-release`](https://github.com/sbt/sbt-release), version `1.0.7`.
+* [`sbt-pgp`](https://github.com/sbt/sbt-pgp), version `1.0.0`.
 * [`sbt-bintray`](https://github.com/sbt/sbt-bintray), version `0.3.0`.
 
 If you already depend on them, remove them from your `plugins.sbt` file.
