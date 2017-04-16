@@ -45,14 +45,11 @@ lazy val noPublish = Seq(
   publishArtifact := false
 )
 
-def randomizeVersion(version: String): String =
-  s"$version+${scala.math.abs(scala.util.Random.nextInt())}"
-
 lazy val root = project
   .in(file("."))
   .settings(noPublish)
   .settings(scriptedTest)
-  .dependsOn(p1, p2)
+  .aggregate(p1, p2)
 
 lazy val p1 = project
   .in(file("p1"))
@@ -66,21 +63,24 @@ lazy val p2 = project
   .settings(requiredSettings)
   .settings(scalaVersion := "2.11.8")
 
-/* These are utilities for scripted to check git tags. */
-
-version in ThisBuild := (Def.settingDyn {
-  val currentVersion = (version in ThisBuild).value
+val allowed = "0123456789abcdef"
+val randomVersion =
+  scala.util.Random.alphanumeric
+    .filter((c: Char) => allowed.contains(c))
+    .take(8).mkString("")
+val randomizeVersion = taskKey[Unit]("Randomize version")
+randomizeVersion in ThisBuild := {
+  val currentVersion = version.in(ThisBuild).value
   val default = currentVersion.endsWith("-SNAPSHOT")
   import ch.epfl.scala.sbt.release.ReleaseEarly.Defaults
   if (Defaults.isDynVerSnapshot(dynverGitDescribeOutput.value, default))
-    Def.setting(sys.error("Version has to be derived from a git tag."))
-  else {
-    Def.setting {
-      sLog.value.info(
-        s"Randomizing version from tag $currentVersion to test publish.")
-      randomizeVersion(currentVersion)
-    }
-  }
-}).value
+    sys.error("Version has to be derived from a git tag.")
 
-dynver in ThisBuild := (version in ThisBuild).value
+  val logger = state.value.log
+  val newRandomVersion = s"v0.2.0+1-$randomVersion"
+  logger.info(s"Adding random version to test git tag: $newRandomVersion")
+  val process =
+    sbt.Process(s"""git tag -a $newRandomVersion -m hehe""",
+                Option(baseDirectory.in(ThisBuild).value))
+  assert(process.! == 0)
+}

@@ -226,13 +226,13 @@ object ReleaseEarly {
               logger.error(Feedback.missingBintrayCredentials)
             }
 
-            // We cannot cache this, bintray cache is private.
-            val sonatypeCredentials = getSonatypeCredentials
-            if (sonatypeCredentials.isEmpty &&
-                !Keys.isSnapshot.value && // We don't sync in snapshots
+            if (!Keys.isSnapshot.value) {
+              val sonatypeCredentials = getSonatypeCredentials
+              if (sonatypeCredentials.isEmpty &&
                 !Keys.state.value.interactive) {
-              errors += 1
-              logger.error(Feedback.missingSonatypeCredentials)
+                errors += 1
+                logger.error(Feedback.missingSonatypeCredentials)
+              }
             }
 
             // There is no way to check if the logger has errors...
@@ -284,8 +284,8 @@ trait Helper {
     }
     val isNewSnapshot =
       isStable.map(stable => !stable || defaultValue)
-    // If it's not a regular snapshot and stable, then it's dynver snapshot
-    isNewSnapshot.getOrElse(true)
+    // Return previous snapshot definition in case users has overridden version
+    isNewSnapshot.getOrElse(defaultValue)
   }
 
   import scala.xml.NodeSeq

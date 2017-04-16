@@ -11,7 +11,7 @@ object Feedback {
     "Missing `developers`. Set it manually to generate correct POM files."
 
   def skipRelease(projectName: String) =
-    s"Skip release for $projectName because `publishArtifact` is false."
+    s"${prefix}Skip release for $projectName because `publishArtifact` is false."
   def logCheckRequirements(projectName: String) =
     s"${prefix}Checking requirements for $projectName."
   def logCheckSnapshots(projectName: String) =
@@ -58,5 +58,5 @@ object Feedback {
     """.stripMargin
 
   val fixRequirementErrors =
-    "Found errors that need to be fixed before proceeding."
+    s"${prefix}Found errors that need to be fixed before proceeding."
 }
