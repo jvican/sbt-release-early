@@ -11,15 +11,19 @@ lazy val publishSettings = Seq(
   ),
   homepage := Some(url("https://github.com/scalacenter/sbt-release-early")),
   autoAPIMappings := true,
-  pomExtra :=
-    <developers>
-      <developer>
-        <id>jvican</id>
-        <name>Jorge Vicente Cantero</name>
-        <url></url>
-      </developer>
-    </developers>
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/scalacenter/sbt-release-early"),
+      "scm:git:git@github.com:scalacenter/sbt-release-early.git"
+    )),
+  developers := List(
+    Developer("jvican",
+              "Jorge Vicente Cantero",
+              "jorge@vican.me",
+              url("https://github.com/jvican"))
+  )
 )
+
 lazy val buildSettings = Seq(
   organization := "ch.epfl.scala",
   resolvers += Resolver.jcenterRepo,

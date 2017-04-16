@@ -11,7 +11,9 @@ object ReleaseEarlyPlugin extends AutoPlugin {
   override def requires: Plugins =
     sbtrelease.ReleasePlugin && sbtdynver.DynVerPlugin && bintray.BintrayPlugin
   override def projectSettings: Seq[Def.Setting[_]] =
-    super.projectSettings ++ ReleaseEarly.projectSettings
+    ReleaseEarly.projectSettings
+  override def buildSettings: Seq[Def.Setting[_]] =
+    ReleaseEarly.buildSettings
 }
 
 object ReleaseEarlyKeys {
@@ -39,6 +41,8 @@ object ReleaseEarlyKeys {
       taskKey("Synchronize to Maven Central.")
     val releaseEarlyCheckRequirements: TaskKey[Unit] =
       taskKey("Check the requirements of the environment.")
+    val releaseEarlyBintrayRelease: TaskKey[Unit] =
+      taskKey("Release to bintray skipping projects with no artifacts.")
   }
 }
 
@@ -50,6 +54,10 @@ object ReleaseEarly {
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
 
+  val buildSettings: Seq[Setting[_]] = Seq(
+    Keys.isSnapshot := Defaults.isSnapshot.value
+  )
+
   val projectSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
     releaseEarly := Defaults.releaseEarly.value,
@@ -59,7 +67,8 @@ object ReleaseEarly {
     releaseEarlyKeyedProcess := Defaults.releaseEarlyKeyedProcess.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
-    releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value
+    releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
+    releaseEarlyBintrayRelease := Defaults.releaseEarlyBintrayRelease.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
@@ -79,14 +88,8 @@ object ReleaseEarly {
 
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
-      val isStable = DynVer.dynverGitDescribeOutput.value.map { info =>
-        info.ref.value.startsWith("v") &&
-        (info.commitSuffix.distance <= 0 || info.commitSuffix.sha.isEmpty)
-      }
-      val isNewSnapshot =
-        isStable.map(stable => !stable || Keys.isSnapshot.value)
-      // If it's not a regular snapshot and stable, then it's dynver snapshot
-      isNewSnapshot.getOrElse(true)
+      isDynVerSnapshot(DynVer.dynverGitDescribeOutput.value,
+                       Keys.isSnapshot.value)
     }
 
     val releaseEarlyEnableLocalReleases: Def.Initialize[Boolean] =
@@ -96,10 +99,14 @@ object ReleaseEarly {
       Def.setting(sys.env.get("CI").isDefined)
 
     val releaseEarly: Def.Initialize[Task[Unit]] = Def.taskDyn {
+      import Keys.state
       if (!ThisPluginKeys.releaseEarlyInsideCI.value &&
-          !ThisPluginKeys.releaseEarlyEnableLocalReleases.value)
+          !ThisPluginKeys.releaseEarlyEnableLocalReleases.value) {
         Def.task(sys.error(Feedback.OnlyCI))
-      else Def.task(runCommand("release")(Keys.state.value))
+      } else if (noArtifactToPublish.value) {
+        val msg = Feedback.skipRelease(Keys.name.value)
+        Def.task(state.value.log.info(msg))
+      } else Def.task(runCommand("release")(state.value))
     }
 
     /** Validate POM files for synchronization with Maven Central.
@@ -195,17 +202,37 @@ object ReleaseEarly {
       st.put(SbtRelease.ReleaseKeys.versions, (releaseVersion, nextVersion))
     }
 
+    val releaseEarlyBintrayRelease: Def.Initialize[Task[Unit]] = Def.task {
+      val state = Keys.state.value
+      val extracted = sbt.Project.extract(state)
+      val aggregate = extracted.currentProject.aggregate.headOption.toList
+      aggregate.foreach { (ref: sbt.ProjectRef) =>
+        state.log.info(Feedback.logBintrayRelease(Keys.name.value))
+        val taskToRun = Bintray.bintrayRelease.in(sbt.Global).in(ref)
+        extracted.runTask(taskToRun, state)
+      }
+    }
+
     /** Define keys for every release step so that users of the plugin can
       * programmatically manipulate the release pipeline without making their
       * own from scratch. This is accessible from `releaseEarlyKeyedProcess`. */
+    object ReleaseStepsKeys {
+      val dynVersion =
+        AttributeKey("setDynVersion", "Release step to set dynver versions.")
+      val checkSnapshotDependencies =
+        AttributeKey("checkSnapshotDependencies", "Check snapshots.")
+      val publishArtifacts =
+        AttributeKey("publishArtifacts", "Publish all artifacts.")
+    }
+
     val releaseProcessKeys: Seq[AttributeKey[_]] = {
       List(
         ThisPluginKeys.releaseEarlyCheckRequirements.key,
         DynVer.dynverAssertVersion.key,
-        AttributeKey("setDynVersion", "Release step to set dynver versions."),
+        ReleaseStepsKeys.dynVersion,
         ThisPluginKeys.releaseEarlyValidatePom.key,
-        AttributeKey("checkSnapshotDependencies", "Check snapshots."),
-        AttributeKey("publishArtifacts", "Publish all artifacts."),
+        ReleaseStepsKeys.checkSnapshotDependencies,
+        ReleaseStepsKeys.publishArtifacts,
         Bintray.bintrayRelease.key,
         ThisPluginKeys.releaseEarlySyncToMaven.key
       )
@@ -247,7 +274,13 @@ object ReleaseEarly {
       // We want to cross-build at the CI level, using different jobs
       SbtRelease.releaseCrossBuild := false,
       SbtRelease.releasePublishArtifactsAction := Keys.publish.value,
-      Bintray.bintrayOmitLicense := false
+      Bintray.bintrayOmitLicense := false,
+      Bintray.bintrayReleaseOnPublish := false,
+      Bintray.bintrayVcsUrl := {
+        // This is necessary to create repos in bintray if they don't exist
+        Bintray.bintrayVcsUrl.value
+          .orElse(Keys.scmInfo.value.map(_.browseUrl.toString))
+      }
     )
   }
 }
@@ -274,11 +307,33 @@ trait Helper {
       .copy(remainingCommands = st.remainingCommands)
   }
 
+  protected def noArtifactToPublish: Def.Initialize[Task[Boolean]] = Def.task {
+    import sbt.Keys.publishArtifact
+    !(
+      publishArtifact.value ||
+        publishArtifact.in(sbt.Compile).value ||
+        publishArtifact.in(sbt.Test).value
+    )
+  }
+
+  import sbtdynver.GitDescribeOutput
+  def isDynVerSnapshot(gitInfo: Option[GitDescribeOutput],
+                       defaultValue: Boolean): Boolean = {
+    val isStable = gitInfo.map { info =>
+      info.ref.value.startsWith("v") &&
+      (info.commitSuffix.distance <= 0 || info.commitSuffix.sha.isEmpty)
+    }
+    val isNewSnapshot =
+      isStable.map(stable => !stable || defaultValue)
+    // If it's not a regular snapshot and stable, then it's dynver snapshot
+    isNewSnapshot.getOrElse(true)
+  }
+
   import scala.xml.NodeSeq
   protected def missingNode(pom: NodeSeq, label: String): Boolean =
     pom.\\(label).isEmpty
 
-  /** Get Sonatype credentials from the environment. Order:
+  /** Get Sonatype credentials from environment in the same way as sbt-bintray:
     *
     *   1. System properties.
     *   2. Environment variables.

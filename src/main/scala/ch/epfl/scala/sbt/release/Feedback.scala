@@ -6,6 +6,12 @@ object Feedback {
     "Missing `scmInfo`. Set it manually to generate correct POM files."
   val forceDefinitionOfDevelopers =
     "Missing `developers`. Set it manually to generate correct POM files."
+  def skipRelease(projectName: String) =
+    s"Skip release for $projectName because `publishArtifact` is false."
+  def skipBintrayRelease(projectName: String) =
+    s"Skip bintray staging release for $projectName because `publishArtifact` is false."
+  def logBintrayRelease(projectName: String) =
+    s"Releasing to bintray $projectName's artifacts."
 
   val forceValidLicense = s"""
       |Maven Central requires your POM files to define a valid license.
