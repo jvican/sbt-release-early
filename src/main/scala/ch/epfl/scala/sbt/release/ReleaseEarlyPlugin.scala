@@ -1,6 +1,15 @@
 package ch.epfl.scala.sbt.release
 
-import sbt.{AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task}
+import scala.language.existentials
+import sbt.{
+  AutoPlugin,
+  Def,
+  PluginTrigger,
+  Plugins,
+  Setting,
+  Task,
+  TaskSequential
+}
 
 object ReleaseEarlyPlugin extends AutoPlugin {
   object autoImport
@@ -9,7 +18,7 @@ object ReleaseEarlyPlugin extends AutoPlugin {
 
   override def trigger: PluginTrigger = allRequirements
   override def requires: Plugins =
-    sbtrelease.ReleasePlugin && sbtdynver.DynVerPlugin && bintray.BintrayPlugin
+    sbtdynver.DynVerPlugin && bintray.BintrayPlugin
   override def projectSettings: Seq[Def.Setting[_]] =
     ReleaseEarly.projectSettings
   override def buildSettings: Seq[Def.Setting[_]] =
@@ -20,16 +29,14 @@ object ReleaseEarlyKeys {
   import sbt.{taskKey, settingKey, TaskKey, SettingKey}
 
   trait ReleaseEarlySettings {
-    import scala.language.existentials
-    import sbtrelease.ReleasePlugin.autoImport.ReleaseStep
-    case class KeyedReleaseStep(key: sbt.AttributeKey[_], step: ReleaseStep)
-
     val releaseEarlyEnableLocalReleases: SettingKey[Boolean] =
       settingKey("Enable local releases.")
     val releaseEarlyInsideCI: SettingKey[Boolean] =
       settingKey("Detect whether sbt is running inside the CI.")
-    val releaseEarlyKeyedProcess: SettingKey[Seq[KeyedReleaseStep]] =
-      settingKey("Release process with keys for programmatic manipulation.")
+    val releaseEarlyBypassSnapshotCheck: SettingKey[Boolean] =
+      settingKey("Bypass snapshots check, not failing if snapshots are found.")
+    val releaseEarlyProcess: SettingKey[Seq[TaskKey[Unit]]] =
+      settingKey("Release process executed by `releaseEarly`.")
   }
 
   trait ReleaseEarlyTasks {
@@ -41,16 +48,17 @@ object ReleaseEarlyKeys {
       taskKey("Synchronize to Maven Central.")
     val releaseEarlyCheckRequirements: TaskKey[Unit] =
       taskKey("Check the requirements of the environment.")
-    val releaseEarlyBintrayRelease: TaskKey[Unit] =
-      taskKey("Release to bintray skipping projects with no artifacts.")
+    val releaseEarlyCheckSnapshotDependencies: TaskKey[Unit] =
+      taskKey("Check snapshot dependencies before the release.")
+    val releaseEarlyPublish: TaskKey[Unit] =
+      taskKey(s"Publish artifact. Defaults to ${sbt.Keys.publish.key.label}.")
   }
 }
 
 object ReleaseEarly {
-  import sbt.{Keys, AttributeKey, State}
+  import sbt.Keys
 
   import ReleaseEarlyPlugin.autoImport._
-  import sbtrelease.ReleasePlugin.{autoImport => SbtRelease}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
 
@@ -63,12 +71,13 @@ object ReleaseEarly {
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
-    SbtRelease.releaseProcess := Defaults.releaseProcess,
-    releaseEarlyKeyedProcess := Defaults.releaseEarlyKeyedProcess.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
     releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
-    releaseEarlyBintrayRelease := Defaults.releaseEarlyBintrayRelease.value
+    releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
+    releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
+    releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
+    releaseEarlyProcess := Defaults.releaseEarlyProcess.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
@@ -98,15 +107,61 @@ object ReleaseEarly {
     val releaseEarlyInsideCI: Def.Initialize[Boolean] =
       Def.setting(sys.env.get("CI").isDefined)
 
+    val releaseEarlyBypassSnapshotChecks: Def.Initialize[Boolean] =
+      Def.setting(false)
+
+    val releaseEarlyCheckSnapshotDependencies: Def.Initialize[Task[Unit]] = {
+      Def.taskDyn {
+        if (!ThisPluginKeys.releaseEarlyBypassSnapshotCheck.value) {
+          val logger = Keys.state.value.log
+          logger.info(Feedback.logCheckRequirements(Keys.name.value))
+          val managedClasspath = (Keys.managedClasspath in sbt.Runtime).value
+          val moduleIds = managedClasspath.flatMap(_.get(Keys.moduleID.key))
+          // NOTE that we don't use sbt-release-early snapshot definition here.
+          val snapshots = moduleIds.filter(m =>
+            m.isChanging || m.revision.endsWith("-SNAPSHOT"))
+          if (snapshots.nonEmpty)
+            sys.error(Feedback.detectedSnapshotsDependencies(snapshots))
+          else Def.task(())
+        } else Def.task(())
+      }
+    }
+
+    val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Keys.publish
+
+    val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
+      Def.setting(
+        Seq(
+          ThisPluginKeys.releaseEarlyCheckRequirements,
+          DynVer.dynverAssertVersion,
+          ThisPluginKeys.releaseEarlyValidatePom,
+          ThisPluginKeys.releaseEarlyCheckSnapshotDependencies,
+          ThisPluginKeys.releaseEarlyPublish,
+          Bintray.bintrayRelease,
+          ThisPluginKeys.releaseEarlySyncToMaven
+        )
+      )
+    }
+
     val releaseEarly: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      import Keys.state
+      val logger = Keys.state.value.log
       if (!ThisPluginKeys.releaseEarlyInsideCI.value &&
           !ThisPluginKeys.releaseEarlyEnableLocalReleases.value) {
         Def.task(sys.error(Feedback.OnlyCI))
       } else if (noArtifactToPublish.value) {
         val msg = Feedback.skipRelease(Keys.name.value)
-        Def.task(state.value.log.info(msg))
-      } else Def.task(runCommand("release")(state.value))
+        Def.task(logger.info(msg))
+      } else {
+        val steps = ThisPluginKeys.releaseEarlyProcess.value
+        // Return task with unit value at the end
+        val initializedSteps = steps.map(_.toTask)
+        Def.taskDyn {
+          logger.info(Feedback.logReleaseEarly(Keys.name.value))
+          // Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference'
+          val DynamicDef = new TaskSequential {}
+          DynamicDef.sequential(initializedSteps, Def.task(()))
+        }
+      }
     }
 
     /** Validate POM files for synchronization with Maven Central.
@@ -127,6 +182,7 @@ object ReleaseEarly {
         if (Keys.publishArtifact.value) {
           Def.task {
             val logger = Keys.state.value.log
+            logger.info(Feedback.logValidatePom(Keys.name.value))
             var errors = 0
             if (Keys.scmInfo.value.isEmpty &&
                 missingNode(Keys.pomExtra.value, "scm")) {
@@ -162,9 +218,9 @@ object ReleaseEarly {
           Def.task {
             var errors = 0
             val logger = Keys.state.value.log
-            val bintrayCredentials =
-              catching(classOf[NoSuchElementException])
-                .opt(Bintray.bintrayEnsureCredentials.value)
+            logger.info(Feedback.logCheckRequirements(Keys.name.value))
+            val bintrayCredentials = catching(classOf[NoSuchElementException])
+              .opt(Bintray.bintrayEnsureCredentials.value)
             if (bintrayCredentials.isEmpty) {
               errors += 1
               logger.error(Feedback.missingBintrayCredentials)
@@ -188,92 +244,16 @@ object ReleaseEarly {
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
-        if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value)
-          bintray.BintrayKeys.bintraySyncMavenCentral
-        else Def.task(())
+        if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value) {
+          Def.task {
+            Keys.state.value.log.info(Feedback.logSyncToMaven(Keys.name.value))
+            bintray.BintrayKeys.bintraySyncMavenCentral.value
+          }
+        } else Def.task(())
       }
-    }
-
-    val setDynVersion: SbtRelease.ReleaseStep = { (st: State) =>
-      val extracted = sbt.Project.extract(st)
-      val releaseVersion = extracted.get(Keys.version)
-      // Trick sbt release -- next version is not used.
-      val nextVersion = releaseVersion
-      st.put(SbtRelease.ReleaseKeys.versions, (releaseVersion, nextVersion))
-    }
-
-    val releaseEarlyBintrayRelease: Def.Initialize[Task[Unit]] = Def.task {
-      val state = Keys.state.value
-      val extracted = sbt.Project.extract(state)
-      val aggregate = extracted.currentProject.aggregate.headOption.toList
-      aggregate.foreach { (ref: sbt.ProjectRef) =>
-        state.log.info(Feedback.logBintrayRelease(Keys.name.value))
-        val taskToRun = Bintray.bintrayRelease.in(sbt.Global).in(ref)
-        extracted.runTask(taskToRun, state)
-      }
-    }
-
-    /** Define keys for every release step so that users of the plugin can
-      * programmatically manipulate the release pipeline without making their
-      * own from scratch. This is accessible from `releaseEarlyKeyedProcess`. */
-    object ReleaseStepsKeys {
-      val dynVersion =
-        AttributeKey("setDynVersion", "Release step to set dynver versions.")
-      val checkSnapshotDependencies =
-        AttributeKey("checkSnapshotDependencies", "Check snapshots.")
-      val publishArtifacts =
-        AttributeKey("publishArtifacts", "Publish all artifacts.")
-    }
-
-    val releaseProcessKeys: Seq[AttributeKey[_]] = {
-      List(
-        ThisPluginKeys.releaseEarlyCheckRequirements.key,
-        DynVer.dynverAssertVersion.key,
-        ReleaseStepsKeys.dynVersion,
-        ThisPluginKeys.releaseEarlyValidatePom.key,
-        ReleaseStepsKeys.checkSnapshotDependencies,
-        ReleaseStepsKeys.publishArtifacts,
-        Bintray.bintrayRelease.key,
-        ThisPluginKeys.releaseEarlySyncToMaven.key
-      )
-    }
-
-    import SbtRelease.{ReleaseStep, releaseStepTask}
-
-    /** Define an opinionated release process.
-      *
-      * Differences with other release processes:
-      *
-      * 1. It removes any step involving git (version of project is embedded in
-      *    git tags, so we don't need to push to master version updates).
-      * 2. It does not run tests, since it assumes that tests are already run
-      *    by the CI before executing this.
-      */
-    val releaseProcess: Seq[ReleaseStep] = {
-      import sbtrelease.ReleaseStateTransformations._
-      List[ReleaseStep](
-        releaseStepTask(ThisPluginKeys.releaseEarlyCheckRequirements),
-        releaseStepTask(DynVer.dynverAssertVersion),
-        setDynVersion,
-        releaseStepTask(ThisPluginKeys.releaseEarlyValidatePom),
-        checkSnapshotDependencies,
-        publishArtifacts,
-        releaseStepTask(Bintray.bintrayRelease),
-        releaseStepTask(ThisPluginKeys.releaseEarlySyncToMaven)
-      )
-    }
-
-    val releaseEarlyKeyedProcess: Def.Initialize[Seq[KeyedReleaseStep]] = {
-      assert(releaseProcessKeys.size == releaseProcess.size)
-      Def.setting(releaseProcessKeys.zip(releaseProcess).map {
-        case (key, step) => KeyedReleaseStep(key, step)
-      })
     }
 
     val saneDefaults: Seq[Setting[_]] = Seq(
-      // We want to cross-build at the CI level, using different jobs
-      SbtRelease.releaseCrossBuild := false,
-      SbtRelease.releasePublishArtifactsAction := Keys.publish.value,
       Bintray.bintrayOmitLicense := false,
       Bintray.bintrayReleaseOnPublish := false,
       Bintray.bintrayVcsUrl := {
@@ -286,27 +266,6 @@ object ReleaseEarly {
 }
 
 trait Helper {
-  import sbt.State
-
-  protected def runCommand(command: String): (State) => State = { st: State =>
-    import sbt.complete.Parser
-    @annotation.tailrec
-    def runCommand0(command: String, state: State): State = {
-      val nextState = Parser.parse(command, state.combinedParser) match {
-        case Right(cmd) => cmd()
-        case Left(msg) =>
-          throw sys.error(s"Invalid programmatic input:\n$msg")
-      }
-      nextState.remainingCommands.toList match {
-        case Nil => nextState
-        case head :: tail =>
-          runCommand0(head, nextState.copy(remainingCommands = tail))
-      }
-    }
-    runCommand0(command, st.copy(remainingCommands = Nil))
-      .copy(remainingCommands = st.remainingCommands)
-  }
-
   protected def noArtifactToPublish: Def.Initialize[Task[Boolean]] = Def.task {
     import sbt.Keys.publishArtifact
     !(

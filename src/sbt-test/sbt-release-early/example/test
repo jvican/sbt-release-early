@@ -5,5 +5,4 @@ $ exec git tag -a v0.1.0 -m "v0.1.0"
 
 > p1/compile
 > p2/compile
-# > inspect releaseEarlyBintrayRelease
-# > releaseEarly
+> releaseEarly

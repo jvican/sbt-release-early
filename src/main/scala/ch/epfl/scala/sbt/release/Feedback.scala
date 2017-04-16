@@ -1,17 +1,27 @@
 package ch.epfl.scala.sbt.release
 
 object Feedback {
+  private val prefix: String =
+    s"${scala.Console.BLUE}sbt-release-early: ${scala.Console.RESET}"
+
   val OnlyCI = "The release task was not run inside the CI."
   val forceDefinitionOfScmInfo =
     "Missing `scmInfo`. Set it manually to generate correct POM files."
   val forceDefinitionOfDevelopers =
     "Missing `developers`. Set it manually to generate correct POM files."
+
   def skipRelease(projectName: String) =
     s"Skip release for $projectName because `publishArtifact` is false."
-  def skipBintrayRelease(projectName: String) =
-    s"Skip bintray staging release for $projectName because `publishArtifact` is false."
-  def logBintrayRelease(projectName: String) =
-    s"Releasing to bintray $projectName's artifacts."
+  def logCheckRequirements(projectName: String) =
+    s"${prefix}Checking requirements for $projectName."
+  def logCheckSnapshots(projectName: String) =
+    s"${prefix}Checking snapshots dependencies for $projectName."
+  def logValidatePom(projectName: String) =
+    s"${prefix}Validating POM files for $projectName."
+  def logSyncToMaven(projectName: String) =
+    s"${prefix}Syncing $projectName's artifacts to Maven Central."
+  def logReleaseEarly(projectName: String) =
+    s"${prefix}Executing release process for $projectName."
 
   val forceValidLicense = s"""
       |Maven Central requires your POM files to define a valid license.
@@ -35,6 +45,17 @@ object Feedback {
       |
       |Otherwise they cannot be fetched programmatically.
     """.stripMargin.trim
+
+  private val bypassSnapshotSettingKey: String =
+    ReleaseEarlyPlugin.autoImport.releaseEarlyBypassSnapshotCheck.key.label
+  def detectedSnapshotsDependencies(deps: Seq[sbt.ModuleID]) =
+    s"""
+      |Aborting release process. Snapshot dependencies have been detected:
+      |${deps.mkString("\t", "\n", "")}
+      |
+      |Releasing artifacts that depend on snapshots produce non-deterministic behaviour.
+      |You can disable this check by enabling `$bypassSnapshotSettingKey`.
+    """.stripMargin
 
   val fixRequirementErrors =
     "Found errors that need to be fixed before proceeding."
