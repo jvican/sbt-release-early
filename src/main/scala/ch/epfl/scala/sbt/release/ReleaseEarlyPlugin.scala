@@ -229,7 +229,7 @@ object ReleaseEarly {
             if (!Keys.isSnapshot.value) {
               val sonatypeCredentials = getSonatypeCredentials
               if (sonatypeCredentials.isEmpty &&
-                !Keys.state.value.interactive) {
+                  !Keys.state.value.interactive) {
                 errors += 1
                 logger.error(Feedback.missingSonatypeCredentials)
               }
