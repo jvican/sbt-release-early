@@ -1,6 +1,6 @@
 package ch.epfl.scala.sbt.release
 
-import sbt.{ AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task }
+import sbt.{AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task}
 
 object ReleaseEarlyPlugin extends AutoPlugin {
   object autoImport
@@ -184,40 +184,16 @@ object ReleaseEarly {
     val releaseEarlyValidatePom: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
         // Don't run task on subprojects that don't publish
-        if (Keys.publishArtifact.value) validatePom
+        if (Keys.publishArtifact.value) validatePomTask
         else Def.task(())
       }
     }
 
     val releaseEarlyCheckRequirements: Def.Initialize[Task[Unit]] = {
-      import scala.util.control.Exception.catching
       Def.taskDyn {
         // Don't run task on subprojects that don't publish
-        if (Keys.publishArtifact.value) {
-          Def.task {
-            var errors = 0
-            val logger = Keys.state.value.log
-            logger.info(Feedback.logCheckRequirements(Keys.name.value))
-            val bintrayCredentials = catching(classOf[NoSuchElementException])
-              .opt(Bintray.bintrayEnsureCredentials.value)
-            if (bintrayCredentials.isEmpty) {
-              errors += 1
-              logger.error(Feedback.missingBintrayCredentials)
-            }
-
-            if (!Keys.isSnapshot.value) {
-              val sonatypeCredentials = getSonatypeCredentials
-              if (sonatypeCredentials.isEmpty &&
-                  !Keys.state.value.interactive) {
-                errors += 1
-                logger.error(Feedback.missingSonatypeCredentials)
-              }
-            }
-
-            // There is no way to check if the logger has errors...
-            if (errors > 0) sys.error(Feedback.fixRequirementErrors)
-          }
-        } else Def.task(())
+        if (Keys.publishArtifact.value) checkRequirementsTask
+        else Def.task(())
       }
     }
 
@@ -256,7 +232,32 @@ trait Helper {
     )
   }
 
-  def validatePom: Def.Initialize[Task[Unit]] = Def.task {
+  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.task {
+    import scala.util.control.Exception.catching
+    val logger = Keys.state.value.log
+
+    logger.info(Feedback.logCheckRequirements(Keys.name.value))
+    val bintrayCredentials = catching(classOf[NoSuchElementException])
+      .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
+
+    val sonatypeCredentials = getSonatypeCredentials
+    // If not interactive, it means input has to come from environment
+    val checkSonatype: Boolean = !Keys.isSnapshot.value &&
+      sonatypeCredentials.isEmpty && !Keys.state.value.interactive
+
+    val Checks = List(
+      (bintrayCredentials.isEmpty, Feedback.missingBintrayCredentials),
+      (checkSonatype, Feedback.missingSonatypeCredentials)
+    )
+
+    val hasErrors = Checks.foldLeft(false) {
+      case (hasError, (predicate, feedback)) =>
+        if (predicate) { logger.error(feedback); true } else hasError
+    }
+    if (hasErrors) sys.error(Feedback.fixRequirementErrors)
+  }
+
+  def validatePomTask: Def.Initialize[Task[Unit]] = Def.task {
     val logger = Keys.state.value.log
     logger.info(Feedback.logValidatePom(Keys.name.value))
 
