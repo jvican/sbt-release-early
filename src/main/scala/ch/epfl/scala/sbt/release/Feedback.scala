@@ -5,9 +5,9 @@ object Feedback {
     s"${scala.Console.BLUE}sbt-release-early: ${scala.Console.RESET}"
 
   val OnlyCI = "The release task was not run inside the CI."
-  val forceDefinitionOfScmInfo =
+  val forceScmInfo =
     "Missing `scmInfo`. Set it manually to generate correct POM files."
-  val forceDefinitionOfDevelopers =
+  val forceDevelopers =
     "Missing `developers`. Set it manually to generate correct POM files."
 
   def skipRelease(projectName: String) =

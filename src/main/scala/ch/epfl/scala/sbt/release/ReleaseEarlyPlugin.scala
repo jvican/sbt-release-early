@@ -176,37 +176,10 @@ object ReleaseEarly {
       * From: https://blog.idrsolutions.com/2015/06/how-to-upload-your-java-artifact-to-maven-central/.
       */
     val releaseEarlyValidatePom: Def.Initialize[Task[Unit]] = {
-      import bintray.BintrayKeys.bintrayEnsureLicenses
       Def.taskDyn {
         // Don't run task on subprojects that don't publish
-        if (Keys.publishArtifact.value) {
-          Def.task {
-            val logger = Keys.state.value.log
-            logger.info(Feedback.logValidatePom(Keys.name.value))
-            var errors = 0
-            if (Keys.scmInfo.value.isEmpty &&
-                missingNode(Keys.pomExtra.value, "scm")) {
-              errors += 1
-              logger.error(Feedback.forceDefinitionOfScmInfo)
-            }
-            if (Keys.developers.value.isEmpty &&
-                missingNode(Keys.pomExtra.value, "developers")) {
-              errors += 1
-              logger.error(Feedback.forceDefinitionOfDevelopers)
-            }
-            if (Keys.licenses.value.isEmpty &&
-                missingNode(Keys.pomExtra.value, "licenses")) {
-              errors += 1
-              logger.error(Feedback.forceValidLicense)
-            }
-
-            // Ensure licenses before releasing
-            bintrayEnsureLicenses.value
-
-            // There is no way to check if the logger has errors...
-            if (errors > 0) sys.error(Feedback.fixRequirementErrors)
-          }
-        } else Def.task(())
+        if (Keys.publishArtifact.value) validatePom
+        else Def.task(())
       }
     }
 
@@ -266,13 +239,39 @@ object ReleaseEarly {
 }
 
 trait Helper {
-  protected def noArtifactToPublish: Def.Initialize[Task[Boolean]] = Def.task {
-    import sbt.Keys.publishArtifact
+  import sbt.Keys
+
+  def noArtifactToPublish: Def.Initialize[Task[Boolean]] = Def.task {
+    import Keys.publishArtifact
     !(
       publishArtifact.value ||
         publishArtifact.in(sbt.Compile).value ||
         publishArtifact.in(sbt.Test).value
     )
+  }
+
+  def validatePom: Def.Initialize[Task[Unit]] = Def.task {
+    val logger = Keys.state.value.log
+    logger.info(Feedback.logValidatePom(Keys.name.value))
+
+    val Checks = List(
+      (Keys.scmInfo.value.toList, "scm", Feedback.forceScmInfo),
+      (Keys.developers.value, "developers", Feedback.forceDevelopers),
+      (Keys.licenses.value, "licenses", Feedback.forceValidLicense)
+    )
+
+    val pom = Keys.pomExtra.value
+    val hasErrors = Checks.foldLeft(false) {
+      case (hasError, (value, label, feedback)) =>
+        if (value.isEmpty && missingNode(pom, label)) {
+          logger.error(feedback)
+          true
+        } else hasError
+    }
+
+    // Ensure licenses before releasing
+    bintray.BintrayKeys.bintrayEnsureLicenses.value
+    if (hasErrors) sys.error(Feedback.fixRequirementErrors)
   }
 
   import sbtdynver.GitDescribeOutput
