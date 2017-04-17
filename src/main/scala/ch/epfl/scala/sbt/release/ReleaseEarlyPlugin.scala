@@ -111,7 +111,7 @@ object ReleaseEarly {
     val releaseEarlyCheckSnapshotDependencies: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
         if (!ThisPluginKeys.releaseEarlyBypassSnapshotCheck.value) {
-          val logger = Keys.state.value.log
+          val logger = Keys.streams.value.log
           logger.info(Feedback.logCheckRequirements(Keys.name.value))
           val managedClasspath = (Keys.managedClasspath in sbt.Runtime).value
           val moduleIds = managedClasspath.flatMap(_.get(Keys.moduleID.key))
@@ -152,7 +152,7 @@ object ReleaseEarly {
     }
 
     val releaseEarly: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      val logger = Keys.state.value.log
+      val logger = Keys.streams.value.log
       if (!ThisPluginKeys.releaseEarlyInsideCI.value &&
           !ThisPluginKeys.releaseEarlyEnableLocalReleases.value) {
         Def.task(sys.error(Feedback.OnlyCI))
@@ -201,7 +201,8 @@ object ReleaseEarly {
       Def.taskDyn {
         if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value) {
           Def.task {
-            Keys.state.value.log.info(Feedback.logSyncToMaven(Keys.name.value))
+            Keys.streams.value.log
+              .info(Feedback.logSyncToMaven(Keys.name.value))
             bintray.BintrayKeys.bintraySyncMavenCentral.value
           }
         } else Def.task(())
@@ -234,7 +235,7 @@ trait Helper {
 
   def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.task {
     import scala.util.control.Exception.catching
-    val logger = Keys.state.value.log
+    val logger = Keys.streams.value.log
 
     logger.info(Feedback.logCheckRequirements(Keys.name.value))
     val bintrayCredentials = catching(classOf[NoSuchElementException])
@@ -264,7 +265,7 @@ trait Helper {
   }
 
   def validatePomTask: Def.Initialize[Task[Unit]] = Def.task {
-    val logger = Keys.state.value.log
+    val logger = Keys.streams.value.log
     logger.info(Feedback.logValidatePom(Keys.name.value))
 
     val Checks = List(
