@@ -70,9 +70,9 @@ lazy val `sbt-release-early` = project
   .settings(
     sbtPlugin := true,
     scalaVersion := "2.10.6",
-    addSbtPlugin("me.lessis" % "bintray-sbt" % "0.3.0"),
+    addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.4.0"),
     addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.0"),
-    addSbtPlugin("com.dwijnand" % "sbt-dynver" % "1.2.0"),
+    addSbtPlugin("com.dwijnand" % "sbt-dynver" % "1.3.0"),
     scriptedLaunchOpts := Seq(
       "-Dplugin.version=" + version.value,
       "-Xmx1g",
