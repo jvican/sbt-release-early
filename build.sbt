@@ -1,7 +1,7 @@
 lazy val publishSettings = Seq(
-  publishMavenStyle := true,
-  bintrayOrganization := Some("scalaplatform"),
-  bintrayRepository := "tools",
+  publishMavenStyle := false,
+  bintrayOrganization := Some("scalacenter"),
+  bintrayRepository := "sbt-releases",
   bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt"),
   publishTo := (publishTo in bintray).value,
   publishArtifact in Test := false,
