@@ -13,6 +13,7 @@ pipeline:
   build:
     image: scalacenter/scala:1.2
     commands:
+      - git fetch --tags && git log | head -n 20
       - /usr/local/bin/store_credentials.sh 
       - sbt clean scripted releaseEarly
 
