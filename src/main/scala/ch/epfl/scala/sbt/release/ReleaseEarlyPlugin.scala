@@ -1,6 +1,6 @@
 package ch.epfl.scala.sbt.release
 
-import sbt.{AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task}
+import sbt.{AutoPlugin, Def, File, PluginTrigger, Plugins, Setting, Task}
 
 object ReleaseEarlyPlugin extends AutoPlugin {
   object autoImport
@@ -28,8 +28,6 @@ object ReleaseEarlyKeys {
       settingKey("Bypass snapshots check, not failing if snapshots are found.")
     val releaseEarlyProcess: SettingKey[Seq[TaskKey[Unit]]] =
       settingKey("Release process executed by `releaseEarly`.")
-    val releaseEarlyRemoteSignature: SettingKey[Boolean] =
-      settingKey("Run `bintrayRemoteSign` on stable (git tag-baesd) versions.")
   }
 
   trait ReleaseEarlyTasks {
@@ -54,6 +52,7 @@ object ReleaseEarly {
   import ReleaseEarlyPlugin.autoImport._
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
+  import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
   val buildSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value
@@ -70,8 +69,7 @@ object ReleaseEarly {
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
-    releaseEarlyProcess := Defaults.releaseEarlyProcess.value,
-    releaseEarlyRemoteSignature := Defaults.releaseEarlyRemoteSignature.value
+    releaseEarlyProcess := Defaults.releaseEarlyProcess.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
@@ -125,16 +123,9 @@ object ReleaseEarly {
       }
     }
 
-    val releaseEarlyRemoteSignature: Def.Initialize[Boolean] =
-      Def.setting(false)
-
     val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      import com.typesafe.sbt.SbtPgp.autoImport.PgpKeys
-      if (!Keys.isSnapshot.value) {
-        if (!ThisPluginKeys.releaseEarlyRemoteSignature.value)
-          PgpKeys.publishSigned
-        else StableDef.sequential(Keys.publish, Bintray.bintrayRemoteSign)
-      } else Keys.publish
+      if (!Keys.isSnapshot.value) Pgp.PgpKeys.publishSigned
+      else Keys.publish
     }
 
     val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
@@ -214,7 +205,6 @@ object ReleaseEarly {
       Bintray.bintrayReleaseOnPublish := false,
       Bintray.bintrayVcsUrl := {
         // This is necessary to create repos in bintray if they don't exist
-
         println(Keys.pomExtra.value.\("scm").\("url").text)
         Bintray.bintrayVcsUrl.value
           .orElse(Keys.scmInfo.value.map(_.browseUrl.toString))
