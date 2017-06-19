@@ -1,0 +1,3 @@
+> show version
+# It should fail because the developers information is missing
+-> releaseEarly

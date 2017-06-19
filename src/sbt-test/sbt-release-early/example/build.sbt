@@ -48,6 +48,7 @@ lazy val noPublish = Seq(
 lazy val root = project
   .in(file("."))
   .settings(noPublish)
+  .settings(buildSettings)
   .settings(scriptedTest)
   .aggregate(p1, p2)
 

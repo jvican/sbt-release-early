@@ -1,0 +1,3 @@
+> show version
+# It should fail because the vcs information is missing
+-> releaseEarly

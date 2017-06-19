@@ -1,14 +1,15 @@
 package ch.epfl.scala.sbt.release
 
+import bintray.BintrayPlugin
+import sbt.Keys
+
 object Feedback {
   private val prefix: String =
     s"${scala.Console.BLUE}sbt-release-early: ${scala.Console.RESET}"
+  private def bold(toEmbolden: String): String =
+    s"${scala.Console.BOLD}toEmbolden${scala.Console.RESET}"
 
   val OnlyCI = "The release task was not run inside the CI."
-  val forceScmInfo =
-    "Missing `scmInfo`. Set it manually to generate correct POM files."
-  val forceDevelopers =
-    "Missing `developers`. Set it manually to generate correct POM files."
 
   def skipRelease(projectName: String) =
     s"${prefix}Skip release for $projectName because `publishArtifact` is false."
@@ -24,7 +25,7 @@ object Feedback {
     s"${prefix}Executing release process for $projectName."
 
   val forceValidLicense = s"""
-      |Maven Central requires your POM files to define a valid license.
+      |Maven Central requires your POM files to use a valid license id.
       |Valid licenses are: ${bintry.Licenses.Names}.
     """.stripMargin.trim
 
@@ -45,6 +46,30 @@ object Feedback {
       |
       |Otherwise they cannot be fetched programmatically.
     """.stripMargin.trim
+
+  val RecommendedScope: String =
+    s"The recommended scope for either of these keys is ${bold("`ThisBuild`")}."
+
+  val missingVcsUrl =
+    s"""
+      |The vcs url information is missing. Make sure that:
+      |  * The key `${Keys.scmInfo.key}` is defined and correctly scoped; or
+      |  * The key `${Keys.pomExtra.key}` does contain the scm url xml node; or
+      |  * The key `${BintrayPlugin.autoImport.bintrayVcsUrl.key}` is defined and correctly scoped.
+      |
+      |Use `inspect` to check the scopes of your current definitions.
+      |$RecommendedScope
+    """.stripMargin
+
+  val missingDevelopers =
+    s"""
+      |The developers information is missing. Make sure that:
+      |  * The key `${Keys.developers.key}` is defined; or
+      |  * The key `${Keys.pomExtra.key}` contains the `developers` xml node.
+      |
+      |Use `inspect` to check the scopes of your current definitions.
+      |$RecommendedScope
+    """.stripMargin
 
   private val bypassSnapshotSettingKey: String =
     ReleaseEarlyPlugin.autoImport.releaseEarlyBypassSnapshotCheck.key.label

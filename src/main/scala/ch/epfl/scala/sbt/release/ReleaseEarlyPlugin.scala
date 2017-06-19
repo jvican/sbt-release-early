@@ -214,8 +214,14 @@ object ReleaseEarly {
       Bintray.bintrayReleaseOnPublish := false,
       Bintray.bintrayVcsUrl := {
         // This is necessary to create repos in bintray if they don't exist
+
+        println(Keys.pomExtra.value.\("scm").\("url").text)
         Bintray.bintrayVcsUrl.value
           .orElse(Keys.scmInfo.value.map(_.browseUrl.toString))
+          .orElse {
+            val url = Keys.pomExtra.value.\\("scm").\\("url").text
+            if (url.nonEmpty) Some(url) else sys.error(Feedback.missingVcsUrl)
+          }
       }
     )
   }
@@ -269,8 +275,8 @@ trait Helper {
     logger.info(Feedback.logValidatePom(Keys.name.value))
 
     val Checks = List(
-      (Keys.scmInfo.value.toList, "scm", Feedback.forceScmInfo),
-      (Keys.developers.value, "developers", Feedback.forceDevelopers),
+      (Keys.scmInfo.value.toList, "scm", Feedback.missingVcsUrl),
+      (Keys.developers.value, "developers", Feedback.missingDevelopers),
       (Keys.licenses.value, "licenses", Feedback.forceValidLicense)
     )
 
