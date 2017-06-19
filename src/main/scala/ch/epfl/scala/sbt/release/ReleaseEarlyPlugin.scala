@@ -112,7 +112,7 @@ object ReleaseEarly {
       Def.taskDyn {
         if (!ThisPluginKeys.releaseEarlyBypassSnapshotCheck.value) {
           val logger = Keys.streams.value.log
-          logger.info(Feedback.logCheckRequirements(Keys.name.value))
+          logger.info(Feedback.logCheckSnapshots(Keys.name.value))
           val managedClasspath = (Keys.managedClasspath in sbt.Runtime).value
           val moduleIds = managedClasspath.flatMap(_.get(Keys.moduleID.key))
           // NOTE that we don't use sbt-release-early snapshot definition here.

@@ -38,11 +38,10 @@ object Feedback {
     """.stripMargin.trim
 
   val missingSonatypeCredentials =
-    """
-      |Sonatype credentials are missing. Aborting.
-      |Make sure that the credentials are available via:
-      |  1. System properties (sona.user and sona.pass).
-      |  2. Environment variables (SONA_USER and SONA_PASS).
+    s"""
+      |Sonatype credentials are missing. Make sure that:
+      |  1. System properties (sona.user and sona.pass) are available; or
+      |  2. Environment variables (SONA_USER and SONA_PASS) are set.
       |
       |Otherwise they cannot be fetched programmatically.
     """.stripMargin.trim
