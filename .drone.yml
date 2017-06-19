@@ -2,6 +2,8 @@ pipeline:
   sftp_cache:
     image: plugins/sftp-cache
     restore: true
+    when:
+      event: [push, pull_request, tag, deployment]
     mount:
       - /drone/.ivy2
       - /drone/.coursier
@@ -12,11 +14,14 @@ pipeline:
     image: scalacenter/scala:1.2
     commands:
       - /usr/local/bin/store_credentials.sh 
-      - sbt clean scripted
+      - sbt clean scripted releaseEarly
 
   sftp_cache:
     image: plugins/sftp-cache
     rebuild: true
+    when:
+      status: [ success, failure ]
+      event: [push, pull_request, tag, deployment]
     mount:
       - /drone/.ivy2
       - /drone/.coursier
