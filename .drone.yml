@@ -18,13 +18,17 @@ pipeline:
       - sbt clean scripted
 
   publish:
-    image: scalacenter/scala:1.3
+    # Mount from an identical image but with different id
+    # so that sonatype environment variables are not accessible
+    image: scalacenter/scala-publish:1.3
     volumes:
       - /scalacenter:/keys
     when:
       event: [ push, tag, deployment ]
     commands:
       - git fetch --tags && git log | head -n 20
+      - /usr/local/bin/setup_keys.sh 
+      - /usr/local/bin/store_credentials.sh 
       - sbt releaseEarly
 
   sftp_cache:
