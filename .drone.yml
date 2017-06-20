@@ -3,7 +3,7 @@ pipeline:
     image: plugins/sftp-cache
     restore: true
     when:
-      event: [push, pull_request, tag, deployment]
+      event: [ push, pull_request, tag, deployment ]
     mount:
       - /drone/.ivy2
       - /drone/.coursier
@@ -11,18 +11,28 @@ pipeline:
       - /drone/.git
 
   build:
-    image: scalacenter/scala:1.2
+    image: scalacenter/scala:1.3
     commands:
       - git fetch --tags && git log | head -n 20
       - /usr/local/bin/store_credentials.sh 
-      - sbt clean scripted releaseEarly
+      - sbt clean scripted
+
+  publish:
+    image: scalacenter/scala:1.3
+    volumes:
+      - /scalacenter:/keys
+    when:
+      event: [ push, tag, deployment ]
+    commands:
+      - git fetch --tags && git log | head -n 20
+      - sbt releaseEarly
 
   sftp_cache:
     image: plugins/sftp-cache
     rebuild: true
     when:
       status: [ success, failure ]
-      event: [push, pull_request, tag, deployment]
+      event: [ push, pull_request, tag, deployment ]
     mount:
       - /drone/.ivy2
       - /drone/.coursier
