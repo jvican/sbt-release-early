@@ -26,7 +26,6 @@ pipeline:
       - /scalacenter:/keys
     when:
       event: [ push, tag, deployment ]
-      branch: [ master ]
     environment:
       - DRONE_DIR=/drone
     commands:
