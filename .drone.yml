@@ -2,6 +2,7 @@ pipeline:
   sftp_cache:
     image: plugins/sftp-cache
     restore: true
+    ignore_branch: true
     when:
       event: [ push, pull_request, tag, deployment ]
     mount:
@@ -25,7 +26,7 @@ pipeline:
       - /scalacenter:/keys
     when:
       event: [ push, tag, deployment ]
-      branch: [master]
+      branch: [ master ]
     environment:
       - DRONE_DIR=/drone
     commands:
