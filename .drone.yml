@@ -25,6 +25,9 @@ pipeline:
       - /scalacenter:/keys
     when:
       event: [ push, tag, deployment ]
+      branch: [master]
+    environment:
+      - DRONE_DIR=/drone
     commands:
       - git fetch --tags && git log | head -n 20
       - /usr/local/bin/setup_keys.sh 
