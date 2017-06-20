@@ -70,6 +70,9 @@ object Feedback {
       |$RecommendedScope
     """.stripMargin
 
+  def skipSyncToMaven(projectName: String) =
+    s"${prefix}Skipping Maven Central synchronization for $projectName."
+
   private val bypassSnapshotSettingKey: String =
     ReleaseEarlyPlugin.autoImport.releaseEarlyBypassSnapshotCheck.key.label
   def detectedSnapshotsDependencies(deps: Seq[sbt.ModuleID]) =

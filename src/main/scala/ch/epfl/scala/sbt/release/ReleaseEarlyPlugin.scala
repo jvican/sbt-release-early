@@ -190,13 +190,14 @@ object ReleaseEarly {
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
+        val logger = Keys.streams.value.log
+        val projectName = Keys.name.value
         if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value) {
           Def.task {
-            Keys.streams.value.log
-              .info(Feedback.logSyncToMaven(Keys.name.value))
+            logger.info(Feedback.logSyncToMaven(projectName))
             bintray.BintrayKeys.bintraySyncMavenCentral.value
           }
-        } else Def.task(())
+        } else Def.task(logger.info(Feedback.skipSyncToMaven(projectName)))
       }
     }
 
