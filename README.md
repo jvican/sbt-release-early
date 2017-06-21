@@ -200,10 +200,10 @@ releaseEarlyEnableSyncToMaven := false
 
 #### What do I need to synchronize with Maven Central?
 
-1. You need to create a **Maven** Bintray repository.
+1. You need to create a **Maven** Bintray repository. <p>
 ![bintray_maven](https://user-images.githubusercontent.com/2462974/27399758-21607d3a-56be-11e7-919d-06b9315e22ee.png)
 1. When you've done your first non-stable release, you need to synchronize
-your Bintray package with **JCenter**.
+your Bintray package with **JCenter**. <p>
 ![jcenter-to-link](https://user-images.githubusercontent.com/2462974/27399894-9527a72a-56be-11e7-944f-f27e73d5c09f.png)
 
 The Bintray team will accept your package into the JCenter repository within 1 or 2 hours.
