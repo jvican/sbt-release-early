@@ -12,7 +12,8 @@
 
 `sbt-release-early` is an sbt plugin to follow the maxim
 `"Release early, release often"`. It provides an automatic way to release
-artifacts on merge and via git tags.
+artifacts on merge and via git tags, as well as some nice features to make
+the release process less cumbersome.
 
 Goals:
 1. Maintainers cut and handle releases in a breeze.
