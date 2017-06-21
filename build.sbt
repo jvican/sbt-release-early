@@ -5,8 +5,8 @@ lazy val publishSettings = Seq(
   pgpSecretRing := file("/drone/.gnupg/secring.asc"),
   // These are the requirements for the sbt-release-early plugin
   publishMavenStyle := true,
-  bintrayOrganization := Some("scalaplatform"),
-  bintrayRepository := "tools",
+  bintrayOrganization := Some("scalacenter"),
+  bintrayRepository := "sbt-maven-releases",
   bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt"),
   publishTo := (publishTo in bintray).value,
   publishArtifact in Test := false,
