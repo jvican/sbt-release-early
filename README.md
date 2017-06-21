@@ -178,7 +178,7 @@ lazy val publishSettings = Seq(
 No matter what your CI is, you need to ensure that:
 * You only depend on trusted sbt plugins (with stable releases, i.e. no SNAPSHOTs).
 * Releases only happen in branches that are write-protected and to which only the maintainers have access.
-* Releases are disabled for pull requests. This avoids malicious users adding sbt plugins or introspecting the build.
+* Releases are disabled for pull requests. This prevents malicious users from adding sbt plugins or introspecting the build.
 * Your CI configuration files are signed so that no one can have access to the environment variables.
 * Your publish step does as less work as possible (for example, no test execution).
 
