@@ -4,7 +4,7 @@
 
 > **Thou salt not wait for a release!**
 > 
-> — Rick and Morty
+> — [Rick Sanchez](rick)
 
 `sbt-release-early` is an sbt plugin to follow the maxim
 `"Release early, release often"`. The major goal is to provide out-of-the-box
@@ -139,3 +139,4 @@ will also sync your artifacts with Maven Central for free.
 [sbtbintray]: https://github.com/sbt/sbt-bintray
 [bintray]: https://github.com/sbt/sbt-bintray
 [sonatype]: https://www.sonatype.com/
+[rick]: https://www.google.ch/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0ahUKEwilmJf3yc_UAhVFvhQKHVO2DwgQFgg3MAE&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FRick_Sanchez_(Rick_and_Morty)&usg=AFQjCNEalPWcD1EFtXjxxghoVHIAo4gy1Q
