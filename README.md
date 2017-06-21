@@ -235,10 +235,12 @@ We recognise the following ways to contribute to this project:
 * Participating in the discussions in the Gitter channel, issues or pull requests.
 
 Maintainers of this plugin are happy to mentor / help open-source contributors to get familiar with
-sbt or improve their Scala skills.
+sbt or improve their Scala skills. Our focus is on improving this plugin while helping you do open-source
+work and learn.
 
-If you like this work and has the financial means, we encourage you to donate or become an
-[Scala Center's Advisory Board member](scalacenter).
+If you like this work and have the financial means, we encourage you to either donate to the
+open-source Scala community or the [Scala Center](https://scala.epfl.ch)
+If you're a company, we encourage you to become an [Scala Center's Advisory Board member](scalacenter).
 
 The interactions on this repository and its ecosystem are governed by the [Scala Code of Conduct](https://www.scala-lang.org/conduct.html).
 
