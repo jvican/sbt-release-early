@@ -104,29 +104,29 @@ This documentation and this plugin assumes that:
 * Version numbers are **final** if they **only** consist of a MAJOR, MINOR and PATCH VERSION.
   For example, `1.0.1`, `2.4.98` and `10.1.6` are final releases.
 * Any other version number that contains build metadata or qualifiers like `RC`,
-  `beta` or `alpha` are considered SNAPSHOTs even though if they lack the `-SNAPSHOT`
+  `beta` or `alpha` are considered SNAPSHOTs even if they lack the `-SNAPSHOT`
   suffix. For example, `0.3.0+10-4f489199`, `8.9.1-1f43aa21` or `1.0.0-RC` are snapshots.
 
-Note that the snapshot does not have a precise and commonly accepted definition and
-this differs from the common understanding of snapshot versions in the Scala community.
+Note that the snapshot does not have a precise and commonly accepted definition.
+`sbt-release-early`s definition differs from the common understanding of snapshot
+versions in the Scala community.
 
 `sbt-release-early` considers the most literal definition of snapshot: it's a release
 that mirrors the codebase at a given point of time and whose artifacts could not provide
-the same guarantees as final releases.
+the same guarantees as final releases. These guarantees are established by library authors.
 
-#### Why not regulard `-SNAPSHOT`s?
+#### Why not regular `-SNAPSHOT`s?
 
 Snapshots have important shortcomings:
 
-1. They are not reproducible: downstream users can get different snapshot releases
+1. They are **not reproducible**: downstream users can get different snapshot releases
 depending on the time they resolve/update them.
-2. Resolution times go up significantly.
+2. Their **resolution times are slower**: build tools have to check all artifacts in all resolvers to choose
+the appropriate version.
 
-Their use in the open-source community is not justified when tools like [sbt-dynver](sbtdynver)
-solve derive versions for your software based on invariants of your version control system.
-
-By using automatically derived versions, `sbt-release-early` keeps your builds reproducible
-and your resolution times fast.
+The use of snapshots is no longer justified with `sbt-release-early` and sbt plugins like
+[sbt-dynver](sbtdynver) that derive automatic versions from git invariants.
+`sbt-release-early` keeps your builds **more reproducible** and **faster** resolution times.
 
 ## Configure your release
 
