@@ -1,10 +1,12 @@
 lazy val publishSettings = Seq(
+  // This assumes that `publishSigned` is only executed in the CI
   pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
   pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
   pgpSecretRing := file("/drone/.gnupg/secring.asc"),
-  publishMavenStyle := false,
-  bintrayOrganization := Some("scalacenter"),
-  bintrayRepository := "sbt-releases",
+  // These are the requirements for the sbt-release-early plugin
+  publishMavenStyle := true,
+  bintrayOrganization := Some("scalaplatform"),
+  bintrayRepository := "tools",
   bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt"),
   publishTo := (publishTo in bintray).value,
   publishArtifact in Test := false,
