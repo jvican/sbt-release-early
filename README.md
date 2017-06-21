@@ -49,7 +49,7 @@ To synchronize your artifacts with Maven Central, you need to:
 
 1. Make sure you fulfill all the [requirements](#requirements).
 1. Make sure your build and CI are [correctly set up](#configure-your-release).
-1. Run `releaseEarly` in your CI.
+1. Run `sbt releaseEarly` in your CI.
 
 ## Dependencies
 
@@ -80,7 +80,7 @@ While some projects decide to declare versions in sbt files, `sbt-release-early`
 derives the versions of your project from your git tags. This has several benefits:
 
 1. Reproducibility.
-2. Tag uniqueness. Git prevents you from trying to release a version twice by mistake.
+2. Tag uniqueness. Git prevents you from trying to release a version twice by mistake.*
 3. No need to push commits to bump up the versions of your projects.
 4. The tag history shows all the released versions over the time of a project.
 
@@ -89,14 +89,28 @@ The repository revision history becomes the ultimate truth and build-related
 tasks are easy to set up -- no need to resolve the latest version or scrap
 the library version from its sbt build.
 
+\* This assumes you won't ever delete a an already pushed tag. Don't make life more
+dangerous that what it already is.
+
 ### Version schema
 
-Any version that is not final is considered a snapshot even if it has a stable
-number and lacks the `-SNAPSHOT` suffix. For example, `0.3+10-4f489199` is a
-snapshot. This plugin takes the most literal definition of snapshot,
-where a snapshot release mirrors your codebase at given point in time.
+The version lingo is extracted from the [Semantic Versioning document](semver).
 
-#### Why not SNAPSHOTs?
+This documentation and this plugin assumes that:
+* Version numbers are **final** if they **only** consist of a MAJOR, MINOR and PATCH VERSION.
+  For example, `1.0.1`, `2.4.98` and `10.1.6` are final releases.
+* Any other version number that contains build metadata or qualifiers like `RC`,
+  `beta` or `alpha` are considered SNAPSHOTs even though if they lack the `-SNAPSHOT`
+  suffix. For example, `0.3.0+10-4f489199`, `8.9.1-1f43aa21` or `1.0.0-RC` are snapshots.
+
+Note that the snapshot does not have a precise and commonly accepted definition and
+this differs from the common understanding of snapshot versions in the Scala community.
+
+`sbt-release-early` considers the most literal definition of snapshot: it's a release
+that mirrors the codebase at a given point of time and whose artifacts could not provide
+the same guarantees as final releases.
+
+#### Why not regulard `-SNAPSHOT`s?
 
 Snapshots have important shortcomings:
 
@@ -204,3 +218,4 @@ Then, if you provide all the required [credentials](#configure-your-ci-and-your-
 [sonatype]: https://www.sonatype.com/
 [rick]: https://www.google.ch/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0ahUKEwilmJf3yc_UAhVFvhQKHVO2DwgQFgg3MAE&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FRick_Sanchez_(Rick_and_Morty)&usg=AFQjCNEalPWcD1EFtXjxxghoVHIAo4gy1Q
 [bintray-publishing]: https://github.com/sbt/sbt-bintray#publishing
+[semver]: http://semver.org/
