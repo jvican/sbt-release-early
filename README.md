@@ -11,9 +11,13 @@
 > — [Rick Sanchez](rick)
 
 `sbt-release-early` is an sbt plugin to follow the maxim
-`"Release early, release often"`. It provides a way to release artifacts
-on merge in an easy way thanks to its support for automatic releases.
-*No user will ever beg you to release an artifact again*!
+`"Release early, release often"`. It provides an automatic way to release
+artifacts on merge and via git tags.
+
+Goals:
+1. Maintainers cut and handle releases in a breeze.
+1. Users do not need to beg maintainers to release.
+1. Open-source contributors have access to their changes as soon as their PRs are merged.
 
 ## Installation
 
@@ -23,14 +27,14 @@ Add the latest version of this library to your project with the following sbt li
 libraryDependencies += "ch.epfl.scala" % "sbt-release-early" % "0.1.0"
 ```
 
-#### Non-stable releases
+#### Add Scala Center's bintray resolver
 
-Non-stable releases are freshly released from master on merge using
-`sbt-release-early`! To depend on them, add the Scala Center's Bintray resolver
-to your sbt project:
+Our Bintray resolver is useful to depend on non-final releases or final releases of
+`sbt-release-early` that are on their way to Maven Central. To add this resolver to
+your build, drop the following line in your build:
 
 ```scala
-resolvers += Resolver.bintrayRepo("scalacenter", "sbt-maven-releases")
+resolvers in Global += Resolver.bintrayRepo("scalacenter", "sbt-maven-releases")
 ```
 
 ## Requirements
