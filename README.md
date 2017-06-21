@@ -6,7 +6,7 @@
 
 ![rickandmorty_cc_001_pt2_v83js-02](https://user-images.githubusercontent.com/2462974/27400541-aa2e8cd6-56c0-11e7-8361-08dec76e1163.jpg)
 
-> **Thou shalt not wait for a release!**
+> **Thou shalt not take time to cut releases!**
 > 
 > — [Rick Sanchez](rick)
 
