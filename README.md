@@ -10,8 +10,9 @@
 > — [Rick Sanchez](rick)
 
 `sbt-release-early` is an sbt plugin to follow the maxim
-`"Release early, release often"`. The major goal is to provide out-of-the-box
-support for automatic releases.
+`"Release early, release often"`. It provides a way to release artifacts
+on merge in an easy way thanks to its support for automatic releases.
+*No user will ever beg you to release an artifact again*!
 
 ## Use
 
