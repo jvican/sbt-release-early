@@ -6,7 +6,7 @@
 
 ![rickandmorty_cc_001_pt2_v83js-02](https://user-images.githubusercontent.com/2462974/27400541-aa2e8cd6-56c0-11e7-8361-08dec76e1163.jpg)
 
-> **Thou shalt not waste time to cut releases!**
+> **Thou shalt not waste time cutting releases!**
 > 
 > — [Rick Sanchez](rick)
 
@@ -25,7 +25,7 @@ Goals:
 Add the latest version of this library to your project with the following sbt line:
 
 ```scala
-libraryDependencies += "ch.epfl.scala" % "sbt-release-early" % "0.1.0"
+libraryDependencies += "ch.epfl.scala" % "sbt-release-early" % "1.0.2"
 ```
 
 #### Add Scala Center's bintray resolver
