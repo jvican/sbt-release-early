@@ -37,6 +37,8 @@ object ReleaseEarlyKeys {
       taskKey("Validate the data to generate a POM file.")
     val releaseEarlySyncToMaven: TaskKey[Unit] =
       taskKey("Synchronize to Maven Central.")
+    val releaseEarlyEnableSyncToMaven: SettingKey[Boolean] =
+      settingKey("Enable synchronization to Maven Central for git tags.")
     val releaseEarlyCheckRequirements: TaskKey[Unit] =
       taskKey("Check the requirements of the environment.")
     val releaseEarlyCheckSnapshotDependencies: TaskKey[Unit] =
@@ -64,6 +66,7 @@ object ReleaseEarly {
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
+    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableLocalReleases.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
     releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
@@ -188,11 +191,16 @@ object ReleaseEarly {
       }
     }
 
+    val releaseEarlyEnableSyncToMaven: Def.Initialize[Boolean] =
+      Def.setting(true)
+
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
         val logger = Keys.streams.value.log
         val projectName = Keys.name.value
-        if (ThisPluginKeys.releaseEarlyInsideCI.value && !Keys.isSnapshot.value) {
+        if (ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
+            ThisPluginKeys.releaseEarlyInsideCI.value &&
+            !Keys.isSnapshot.value) {
           Def.task {
             logger.info(Feedback.logSyncToMaven(projectName))
             bintray.BintrayKeys.bintraySyncMavenCentral.value
