@@ -59,9 +59,9 @@ To synchronize your artifacts with Maven Central, you need to:
 
 This plugin relies on the following sbt plugins:
 
-* [`sbt-dynver`](sbtdynver), version `0.2.0`.
+* [`sbt-dynver`](sbtdynver), version `1.3.0`.
 * [`sbt-pgp`](sbtpgp), version `1.0.0`.
-* [`sbt-bintray`](sbtbintray), version `0.3.0`.
+* [`sbt-bintray`](sbtbintray), version `0.5.0`.
 
 If you already depend on them, remove them from your `plugins.sbt` file.
 
