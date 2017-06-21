@@ -126,7 +126,7 @@ the appropriate version.
 
 The use of snapshots is no longer justified with `sbt-release-early` and sbt plugins like
 [sbt-dynver](sbtdynver) that derive automatic versions from git invariants.
-`sbt-release-early` keeps your builds **more reproducible** and **faster** resolution times.
+`sbt-release-early` keeps your builds **faster and more reproducible**.
 
 ## Configure your release
 
