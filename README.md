@@ -14,7 +14,7 @@
 on merge in an easy way thanks to its support for automatic releases.
 *No user will ever beg you to release an artifact again*!
 
-## Use
+## Installation
 
 Add the latest version of this library to your project with the following sbt line:
 
@@ -32,16 +32,6 @@ to your sbt project:
 resolvers += Resolver.bintrayRepo("scalacenter", "sbt-maven-releases")
 ```
 
-## Dependencies
-
-This plugin relies on the following sbt plugins:
-
-* [`sbt-dynver`](sbtdynver), version `0.2.0`.
-* [`sbt-pgp`](sbtpgp), version `1.0.0`.
-* [`sbt-bintray`](sbtbintray), version `0.3.0`.
-
-If you already depend on them, remove them from your `plugins.sbt` file.
-
 ## Requirements
 
 If you want to use `sbt-release-early`, you need to:
@@ -52,6 +42,23 @@ If you want to use `sbt-release-early`, you need to:
 To synchronize your artifacts with Maven Central, you need to:
 * Have a [Sonatype](sonatype) account.
 * Have a GPG key that **is published to [pgp.mit.edu](http://pgp.mit.edu/)**.
+* [Set up Bintray for it](#synchronization-with-maven-central).
+
+## How to use it
+
+1. Make sure you fulfill all the [requirements](#requirements).
+1. Make sure your build and CI are [correctly set up](#configure-your-release).
+1. Run `releaseEarly` in your CI.
+
+## Dependencies
+
+This plugin relies on the following sbt plugins:
+
+* [`sbt-dynver`](sbtdynver), version `0.2.0`.
+* [`sbt-pgp`](sbtpgp), version `1.0.0`.
+* [`sbt-bintray`](sbtbintray), version `0.3.0`.
+
+If you already depend on them, remove them from your `plugins.sbt` file.
 
 ## The plugin in a nutshell
 
@@ -102,7 +109,67 @@ solve derive versions for your software based on invariants of your version cont
 By using automatically derived versions, `sbt-release-early` keeps your builds reproducible
 and your resolution times fast.
 
-## Plugin customization
+## Configure your release
+
+### Configure your CI and your build
+
+Whether you use Drone or not, the following [.drone.yml](.drone.yml) can inspire you.
+
+Your CI needs to provide:
+1. The bintray username and password. Preferred choice is via the `BINTRAY_USERNAME`
+and `BINTRAY_PASSWORD` environment variables. More in the [official docs](bintray-publishing).
+2. The sonatype username and password. Either via:
+    1. `SONATYPE_USER` and `SONATYPE_PASSWORD`; or
+    1. `SONA_USER` or `SONA_PASS`.
+3. The pgp password through an environment variable.
+    
+Your build needs to provide:
+1. The following settings for every publishable module (or defined `in Global`):
+```scala
+lazy val publishSettings = Seq(
+  // The sbt-pgp requirements for tag-driven releases and Maven Central sync
+  pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
+  pgpPublicRing := file("LOCATION_OF_YOUR_CI_PUBLIC_RING"),
+  pgpSecretRing := file("LOCATION_OF_YOUR_CI_SECRET_RING"),
+  // These are the **minimum** requirements to release with `sbt-release-early`
+  publishMavenStyle := true,
+  bintrayRepository := "your-bintray-maven-repository",
+  licenses := Seq(
+    // Your license, I recommend the Mozilla Public License!
+    "MPL-2.0" -> url("https://opensource.org/licenses/MPL-2.0")
+  ),
+  homepage := Some(url("https://github.com/your-handle/your-project")),
+  autoAPIMappings := true,
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/your-handle/your-project"),
+      "scm:git:git@github.com:your-handle/your-project.git"
+    )),
+  developers := List(
+    Developer("your-handle", "Your Name", "email@somewhere.me", url("https://github.com/your-handle"))
+  ),
+  // Nice to have: don't publish tests sources
+  publishArtifact in Test := false
+)
+```
+
+### Secure releases
+
+
+No matter what your CI is, you need to ensure that:
+* You only depend on trusted sbt plugins (with stable releases, i.e. no SNAPSHOTs).
+* Releases only happen in branches that are write-protected and to which only the maintainers have access.
+* Releases are disabled for pull requests. This avoids malicious users adding sbt plugins or introspecting the build.
+* Your CI configuration files are signed so that no one can have access to the environment variables.
+* Your publish step does as less work as possible (for example, no test execution).
+
+For instance, Drone provides an automatic way to:
+* Scope environment variables to concrete pipeline steps.
+* Execute pipeline steps only for concrete events or branches.
+* Sign the configuration files (.drone.yml).
+
+If your CI does not ensure any of these points, you are encouraged to give
+Drone a try. It's one of the best CIs out there.
 
 ### Synchronization with Maven Central
 
@@ -111,14 +178,6 @@ To disable it, scope the following key in your project or globally:
 ```scala
 releaseEarlyEnableSyncToMaven := false
 ```
-
-#### Set up your Sonatype credentials
-
-`sbt-release-early` has to pick up your Sonatype credentials from your CI environment.
-Expose them via the following environment variables:
-
-1. Sonatype username: `SONATYPE_USER` or `SONA_USER`.
-1. Sonatype password: `SONATYPE_PASSWORD` or `SONA_PASS`.
 
 #### What do I need to synchronize with Maven Central?
 
@@ -134,9 +193,8 @@ your bintray package interface.
 
 ![jcenter](https://user-images.githubusercontent.com/2462974/27399886-89e42258-56be-11e7-8608-796a71b1db0d.png)
 
-Then, you're ready to go. Next time you push a git tag to the CI, `releaseEarly`
-will also sync your artifacts with Maven Central for free.
-
+Then, if you provide all the required [credentials](#configure-your-ci-and-your-build),
+`releaseEarly` will will sync your artifacts with Maven Central for free.
 
 [sbtdynver]: https://github.com/dwijnand/sbt-dynver
 [sbtpgp]: https://github.com/sbt/sbt-pgp
@@ -144,4 +202,4 @@ will also sync your artifacts with Maven Central for free.
 [bintray]: https://github.com/sbt/sbt-bintray
 [sonatype]: https://www.sonatype.com/
 [rick]: https://www.google.ch/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0ahUKEwilmJf3yc_UAhVFvhQKHVO2DwgQFgg3MAE&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FRick_Sanchez_(Rick_and_Morty)&usg=AFQjCNEalPWcD1EFtXjxxghoVHIAo4gy1Q
-
+[bintray-publishing]: https://github.com/sbt/sbt-bintray#publishing
