@@ -1,10 +1,14 @@
 # Meet `sbt-release-early` [![Build Status](https://platform-ci.scala-lang.org/api/badges/scalacenter/sbt-release-early/status.svg)](https://platform-ci.scala-lang.org/scalacenter/sbt-release-early)
 
+![rickandmorty_cc_001_pt2_v83js-02](https://user-images.githubusercontent.com/2462974/27400541-aa2e8cd6-56c0-11e7-8361-08dec76e1163.jpg)
+
+> **Thou salt not wait for a release!**
+> 
+> — Rick and Morty
+
 `sbt-release-early` is an sbt plugin to follow the maxim
 `"Release early, release often"`. The major goal is to provide out-of-the-box
 support for automatic releases.
-
-**Merge to master and release**. That's the idea.
 
 ## Use
 
