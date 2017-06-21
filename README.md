@@ -215,6 +215,24 @@ your bintray package interface.
 Then, if you provide all the required [credentials](#configure-your-ci-and-your-build),
 `releaseEarly` will will sync your artifacts with Maven Central for free.
 
+## Contributing
+
+We welcome contributions and we actively maintain this plugin, meaning that every contribution
+will get the best of our attention.
+
+We recognise the following ways to contribute to this project:
+* Submitting a pull request to fix anything.
+* Filing a bug report in the issue tracker.
+* Participating in the discussions in the Gitter channel, issues or pull requests.
+
+Maintainers of this plugin are happy to mentor / help open-source contributors to get familiar with
+sbt or improve their Scala skills.
+
+If you like this work and has the financial means, we encourage you to donate or become an
+[Scala Center's Advisory Board member](scalacenter).
+
+The interactions on this repository and its ecosystem are governed by the [Scala Code of Conduct](https://www.scala-lang.org/conduct.html).
+
 [sbtdynver]: https://github.com/dwijnand/sbt-dynver
 [sbtpgp]: https://github.com/sbt/sbt-pgp
 [sbtbintray]: https://github.com/sbt/sbt-bintray
@@ -223,3 +241,4 @@ Then, if you provide all the required [credentials](#configure-your-ci-and-your-
 [rick]: https://www.google.ch/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0ahUKEwilmJf3yc_UAhVFvhQKHVO2DwgQFgg3MAE&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FRick_Sanchez_(Rick_and_Morty)&usg=AFQjCNEalPWcD1EFtXjxxghoVHIAo4gy1Q
 [bintray-publishing]: https://github.com/sbt/sbt-bintray#publishing
 [semver]: http://semver.org/
+[scalacenter]: https://scala.epfl.ch/faqs.html
