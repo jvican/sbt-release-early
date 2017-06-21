@@ -1,5 +1,7 @@
 lazy val publishSettings = Seq(
   pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
+  pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
+  pgpSecretRing := file("/drone/.gnupg/secring.asc"),
   publishMavenStyle := false,
   bintrayOrganization := Some("scalacenter"),
   bintrayRepository := "sbt-releases",
