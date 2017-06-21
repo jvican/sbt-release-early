@@ -206,9 +206,9 @@ releaseEarlyEnableSyncToMaven := false
 your Bintray package with **JCenter**. <p>
 ![jcenter-to-link](https://user-images.githubusercontent.com/2462974/27399894-9527a72a-56be-11e7-944f-f27e73d5c09f.png)
 
-The Bintray team will accept your package into the JCenter repository within 1 or 2 hours.
-You will know that you're ready to publish a final release when you see the following in
-your bintray package interface.
+The Bintray team will accept your package into the JCenter repository.
+This process will last one or two hours and when they accept your package you will receive
+a notification and see the following section in your bintray package interface.
 
 ![jcenter](https://user-images.githubusercontent.com/2462974/27399886-89e42258-56be-11e7-8608-796a71b1db0d.png)
 
