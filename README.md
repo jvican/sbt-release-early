@@ -135,7 +135,7 @@ The use of snapshots is no longer justified with `sbt-release-early` and sbt plu
 
 Whether you use Drone or not, the following [.drone.yml](.drone.yml) can inspire you.
 
-Your CI needs to provide:
+Your **CI** needs to provide:
 1. The bintray username and password. Preferred choice is via the `BINTRAY_USERNAME`
 and `BINTRAY_PASSWORD` environment variables. More in the [official docs](bintray-publishing).
 2. The sonatype username and password. Either via:
@@ -143,8 +143,8 @@ and `BINTRAY_PASSWORD` environment variables. More in the [official docs](bintra
     1. `SONA_USER` or `SONA_PASS`.
 3. The pgp password through an environment variable.
     
-Your build needs to provide:
-1. The following settings for every publishable module (or defined `in Global`):
+Your **build** needs to provide the following settings for every publishable module
+(with `.settings(publishSettings)`) or globally (appending `in Global` to every key).
 ```scala
 lazy val publishSettings = Seq(
   // The sbt-pgp requirements for tag-driven releases and Maven Central sync
@@ -159,12 +159,10 @@ lazy val publishSettings = Seq(
     "MPL-2.0" -> url("https://opensource.org/licenses/MPL-2.0")
   ),
   homepage := Some(url("https://github.com/your-handle/your-project")),
-  autoAPIMappings := true,
-  scmInfo := Some(
-    ScmInfo(
+  scmInfo := Some(ScmInfo(
       url("https://github.com/your-handle/your-project"),
       "scm:git:git@github.com:your-handle/your-project.git"
-    )),
+  )),
   developers := List(
     Developer("your-handle", "Your Name", "email@somewhere.me", url("https://github.com/your-handle"))
   ),
@@ -172,6 +170,16 @@ lazy val publishSettings = Seq(
   publishArtifact in Test := false
 )
 ```
+
+If you want to further customize bintray's or pgp's settings, read the docs of the dependent plugins
+in [requirements](#requirements).
+
+Once you have made sure the CI and the build are correctly set up, you only need to do
+`sbt releaseEarly` **in the CI**. Note that this will fail if you do it locally.
+
+If you want to try your setup with a random version locally, you can
+define `releaseEarlyEnableLocalReleases := true` in your projects so that local releases are enabled.
+This is **not recommended**.
 
 ### Secure releases
 
