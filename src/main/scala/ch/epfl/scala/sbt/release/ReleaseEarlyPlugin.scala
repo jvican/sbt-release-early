@@ -66,7 +66,7 @@ object ReleaseEarly {
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
-    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableLocalReleases.value,
+    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
     releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
