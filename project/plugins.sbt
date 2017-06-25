@@ -2,8 +2,6 @@ logLevel := Level.Warn
 resolvers += Classpaths.sbtPluginReleases
 resolvers += Resolver.bintrayIvyRepo("scalaplatform", "tools")
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15-5")
-
 libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
 
 // This project is its own plugin :)
