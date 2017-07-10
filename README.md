@@ -25,23 +25,25 @@ Goals:
 Add the latest version of this library to your project with the following sbt line:
 
 ```scala
-libraryDependencies += "ch.epfl.scala" % "sbt-release-early" % "1.0.2"
+// project/plugins.sbt
+addSbtPlugin("ch.epfl.scala" % "sbt-release-early" % "1.0.2")
 ```
 
-#### Add Scala Center's bintray resolver
+#### Non-final releases
 
-Our Bintray resolver is useful to depend on non-final releases or final releases of
-`sbt-release-early` that are on their way to Maven Central. To add this resolver to
-your build, drop the following line in your build:
+(optional)
+To depend on a non-final release of `sbt-release-early`, add this resolver to
+your build:
 
 ```scala
+// build.sbt
 resolvers in Global += Resolver.bintrayRepo("scalacenter", "sbt-maven-releases")
 ```
 
 ## Requirements
 
 If you want to use `sbt-release-early`, you need to:
-  
+
 * Use git and have it in the `PATH` (required by sbt-dynver).
 * Have a [Bintray](bintray) account.
 
