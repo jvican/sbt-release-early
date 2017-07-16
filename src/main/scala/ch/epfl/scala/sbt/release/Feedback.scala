@@ -7,7 +7,7 @@ object Feedback {
   private val prefix: String =
     s"${scala.Console.BLUE}sbt-release-early: ${scala.Console.RESET}"
   private def bold(toEmbolden: String): String =
-    s"${scala.Console.BOLD}toEmbolden${scala.Console.RESET}"
+    s"${scala.Console.BOLD}$toEmbolden${scala.Console.RESET}"
 
   val OnlyCI = "The release task was not run inside the CI."
 
