@@ -70,6 +70,10 @@ object Feedback {
       |$RecommendedScope
     """.stripMargin
 
+  import ReleaseEarlyPlugin.autoImport.releaseEarlyWith
+  val unrecognisedPublisher: String =
+    s"The publisher backend selected in `${releaseEarlyWith.key.label}` is unrecognised."
+
   def skipSyncToMaven(projectName: String) =
     s"${prefix}Skipping Maven Central synchronization for $projectName."
 

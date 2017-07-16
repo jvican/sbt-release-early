@@ -20,6 +20,10 @@ object ReleaseEarlyKeys {
   import sbt.{taskKey, settingKey, TaskKey, SettingKey}
 
   trait ReleaseEarlySettings {
+    trait UnderlyingPublisher
+    case object BintrayPublisher extends UnderlyingPublisher
+    case object SonatypePublisher extends UnderlyingPublisher
+
     val releaseEarlyEnableLocalReleases: SettingKey[Boolean] =
       settingKey("Enable local releases.")
     val releaseEarlyInsideCI: SettingKey[Boolean] =
@@ -28,6 +32,8 @@ object ReleaseEarlyKeys {
       settingKey("Bypass snapshots check, not failing if snapshots are found.")
     val releaseEarlyProcess: SettingKey[Seq[TaskKey[Unit]]] =
       settingKey("Release process executed by `releaseEarly`.")
+    val releaseEarlyWith: SettingKey[UnderlyingPublisher] =
+      settingKey("Specify the publisher to publish your artifacts.")
   }
 
   trait ReleaseEarlyTasks {
@@ -45,6 +51,8 @@ object ReleaseEarlyKeys {
       taskKey("Check snapshot dependencies before the release.")
     val releaseEarlyPublish: TaskKey[Unit] =
       taskKey(s"Publish artifact. Defaults to ${sbt.Keys.publish.key.label}.")
+    val releaseEarlyClose: TaskKey[Unit] =
+      taskKey("Materializes the release by closing staging repositories.")
   }
 }
 
@@ -52,6 +60,7 @@ object ReleaseEarly {
   import sbt.Keys
 
   import ReleaseEarlyPlugin.autoImport._
+  import xerial.sbt.Sonatype.{SonatypeCommand => Sonatype}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
@@ -63,6 +72,7 @@ object ReleaseEarly {
   val projectSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
     releaseEarly := Defaults.releaseEarly.value,
+    releaseEarlyWith := Defaults.releaseEarlyWith.value,
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
@@ -72,6 +82,7 @@ object ReleaseEarly {
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
+    releaseEarlyClose := Defaults.releaseEarlyClose.value,
     releaseEarlyProcess := Defaults.releaseEarlyProcess.value
   ) ++ Defaults.saneDefaults
 
@@ -103,6 +114,9 @@ object ReleaseEarly {
     val releaseEarlyEnableLocalReleases: Def.Initialize[Boolean] =
       Def.setting(false)
 
+    val releaseEarlyWith: Def.Initialize[UnderlyingPublisher] =
+      Def.setting(BintrayPublisher)
+
     val releaseEarlyInsideCI: Def.Initialize[Boolean] =
       Def.setting(sys.env.get("CI").isDefined)
 
@@ -131,6 +145,23 @@ object ReleaseEarly {
       else Keys.publish
     }
 
+    private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
+      Def.task {
+        // Trick to make sure that 'sonatypeRelease' does not change the name
+        import Sonatype.{sonatypeRelease => _}
+        runCommandAndRemaining("sonatypeRelease")(state)
+        ()
+      }
+    }
+
+    val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
+      val state = Keys.state.value
+      val underlyingPublisher = ThisPluginKeys.releaseEarlyWith.value
+      if (underlyingPublisher == BintrayPublisher) Bintray.bintrayRelease
+      else if (underlyingPublisher == SonatypePublisher) sonatypeRelease(state)
+      else Def.task(sys.error(Feedback.unrecognisedPublisher))
+    }
+
     val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
       Def.setting(
         Seq(
@@ -139,7 +170,7 @@ object ReleaseEarly {
           ThisPluginKeys.releaseEarlyValidatePom,
           ThisPluginKeys.releaseEarlyCheckSnapshotDependencies,
           ThisPluginKeys.releaseEarlyPublish,
-          Bintray.bintrayRelease,
+          ThisPluginKeys.releaseEarlyClose,
           ThisPluginKeys.releaseEarlySyncToMaven
         )
       )
@@ -228,6 +259,7 @@ object ReleaseEarly {
 
 trait Helper {
   import sbt.Keys
+  import sbt.State
 
   def noArtifactToPublish: Def.Initialize[Task[Boolean]] = Def.task {
     import Keys.publishArtifact
@@ -291,6 +323,24 @@ trait Helper {
     // Ensure licenses before releasing
     bintray.BintrayKeys.bintrayEnsureLicenses.value
     if (hasErrors) sys.error(Feedback.fixRequirementErrors)
+  }
+
+  def runCommandAndRemaining(command: String): State => State = { st: State =>
+    import sbt.complete.Parser
+    @annotation.tailrec
+    def runCommand(command: String, state: State): State = {
+      val nextState = Parser.parse(command, state.combinedParser) match {
+        case Right(cmd) => cmd()
+        case Left(msg) => throw sys.error(s"Invalid programmatic input:\n$msg")
+      }
+      nextState.remainingCommands.toList match {
+        case Nil => nextState
+        case head :: tail =>
+          runCommand(head, nextState.copy(remainingCommands = tail))
+      }
+    }
+    runCommand(command, st.copy(remainingCommands = Nil))
+      .copy(remainingCommands = st.remainingCommands)
   }
 
   import sbtdynver.GitDescribeOutput
