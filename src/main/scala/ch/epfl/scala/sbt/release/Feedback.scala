@@ -13,6 +13,10 @@ object Feedback {
 
   def skipRelease(projectName: String) =
     s"${prefix}Skip release for $projectName because `publishArtifact` is false."
+  def skipBintrayCredentialsCheck(projectName: String) =
+    s"${prefix}Skip check of bintray credentials for $projectName because underlying publisher is not bintray."
+  def skipSonatypeCredentialsCheck(projectName: String) =
+    s"${prefix}Skip check of sonatype credentials for $projectName."
   def logCheckRequirements(projectName: String) =
     s"${prefix}Checking requirements for $projectName."
   def logCheckSnapshots(projectName: String) =
