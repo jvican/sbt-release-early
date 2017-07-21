@@ -27,10 +27,15 @@ object ReleaseEarlyKeys {
     case object BintrayPublisher extends UnderlyingPublisher
     case object SonatypePublisher extends UnderlyingPublisher
 
-    val releaseEarlyEnableLocalReleases: SettingKey[Boolean] =
+    import sbt.Global
+    private val localReleaseEarlyEnableLocalReleases: SettingKey[Boolean] =
       settingKey("Enable local releases.")
-    val releaseEarlyInsideCI: SettingKey[Boolean] =
+    val releaseEarlyEnableLocalReleases: SettingKey[Boolean] =
+      localReleaseEarlyEnableLocalReleases in Global
+    private val localReleaseEarlyInsideCI: SettingKey[Boolean] =
       settingKey("Detect whether sbt is running inside the CI.")
+    val releaseEarlyInsideCI: SettingKey[Boolean] =
+      localReleaseEarlyInsideCI in Global
     val releaseEarlyBypassSnapshotCheck: SettingKey[Boolean] =
       settingKey("Bypass snapshots check, not failing if snapshots are found.")
     val releaseEarlyProcess: SettingKey[Seq[TaskKey[Unit]]] =
@@ -71,6 +76,8 @@ object ReleaseEarly {
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
   val globalSettings: Seq[Setting[_]] = Seq(
+    releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
+    releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     Keys.credentials := Defaults.releaseEarlySonatypeCredentials.value,
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
@@ -79,7 +86,8 @@ object ReleaseEarly {
 
   val buildSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
-    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
+    releaseEarlyWith := Defaults.releaseEarlyWith.value
   )
 
   object PrivateKeys {
@@ -90,13 +98,11 @@ object ReleaseEarly {
       releaseEarlyIsSonatypeInternal in releaseEarly
   }
 
+  // TODO(jvican): Rethink the proper scopes of all these keys.
   val projectSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
     Keys.publishTo := Defaults.releaseEarlyPublishTo.value,
     releaseEarly := Defaults.releaseEarly.value,
-    releaseEarlyWith := Defaults.releaseEarlyWith.value,
-    releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
-    releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
     releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
