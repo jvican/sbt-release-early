@@ -24,8 +24,8 @@ object BuildDefaults {
   def GitHubDev(handle: String, fullName: String, email: String) =
     Developer(handle, fullName, email, url(s"https://github.com/$handle"))
 
-  import bintray.BintrayPlugin.{autoImport => BintrayKeys}
-  import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
+  import com.typesafe.sbt.SbtPgp.{autoImport => PgpKeys}
+  import ch.epfl.scala.sbt.release.ReleaseEarlyPlugin.{autoImport => ReleaseEarlyKeys}
 
   private final val ThisRepo = GitHub("scalacenter", "sbt-release-early")
   final val globalPublishSettings: Seq[Def.Setting[_]] = Seq(
@@ -40,11 +40,9 @@ object BuildDefaults {
     Keys.developers := List(
       GitHubDev("jvican", "Jorge Vicente Cantero", "jorge@vican.me")),
     // Necessary to publish for our Drone CI -- specific to this repo setup.
-    Pgp.pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
-    Pgp.pgpSecretRing := file("/drone/.gnupg/secring.asc"),
-    // Bintray settings -- to be removed.
-    BintrayKeys.bintrayOrganization := Some("scalacenter"),
-    BintrayKeys.bintrayRepository := "sbt-maven-releases"
+    PgpKeys.pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
+    PgpKeys.pgpSecretRing := file("/drone/.gnupg/secring.asc"),
+    ReleaseEarlyKeys.releaseEarlyWith := ReleaseEarlyKeys.SonatypePublisher
   )
 
   final val globalSettings: Seq[Def.Setting[_]] = Seq(
