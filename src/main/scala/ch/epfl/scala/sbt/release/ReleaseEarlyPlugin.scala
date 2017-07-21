@@ -11,6 +11,8 @@ object ReleaseEarlyPlugin extends AutoPlugin {
   override def requires: Plugins =
     sbtdynver.DynVerPlugin && bintray.BintrayPlugin && xerial.sbt.Sonatype
 
+  override def globalSettings: Seq[Def.Setting[_]] =
+    ReleaseEarly.globalSettings
   override def projectSettings: Seq[Def.Setting[_]] =
     ReleaseEarly.projectSettings
   override def buildSettings: Seq[Def.Setting[_]] =
@@ -53,12 +55,14 @@ object ReleaseEarlyKeys {
     val releaseEarlyPublish: TaskKey[Unit] =
       taskKey(s"Publish artifact. Defaults to ${sbt.Keys.publish.key.label}.")
     val releaseEarlyClose: TaskKey[Unit] =
-      taskKey("Materializes the release by closing staging repositories.")
+      taskKey("Materialize the release by closing staging repositories.")
+    val releaseEarlySonatypeCredentials: TaskKey[Seq[sbt.Credentials]] =
+      taskKey("Fetch sonatype credentials from env and persists them.")
   }
 }
 
 object ReleaseEarly {
-  import sbt.{Keys, SettingKey}
+  import sbt.{Keys, SettingKey, settingKey}
 
   import ReleaseEarlyPlugin.autoImport._
   import xerial.sbt.Sonatype.{SonatypeCommand => Sonatype}
@@ -66,17 +70,29 @@ object ReleaseEarly {
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
+  val globalSettings: Seq[Setting[_]] = Seq(
+    Keys.credentials := Defaults.releaseEarlySonatypeCredentials.value,
+    // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
+    // When it's fixed, remove the scoped key in `buildSettings` and this will work
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
+  )
+
   val buildSettings: Seq[Setting[_]] = Seq(
-    Keys.isSnapshot := Defaults.isSnapshot.value
+    Keys.isSnapshot := Defaults.isSnapshot.value,
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
   )
 
   object PrivateKeys {
     // Note: code assumes that if it's not sonatype, it's Bintray.
-    val releaseEarlyIsSonatype: SettingKey[Boolean] = sbt.settingKey("Caca")
+    private val releaseEarlyIsSonatypeInternal: SettingKey[Boolean] =
+      settingKey("Internal key that tells whether Sonatype is enabled.")
+    val releaseEarlyIsSonatype: SettingKey[Boolean] =
+      releaseEarlyIsSonatypeInternal in releaseEarly
   }
 
   val projectSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
+    Keys.publishTo := Defaults.releaseEarlyPublishTo.value,
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlyWith := Defaults.releaseEarlyWith.value,
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
@@ -118,6 +134,58 @@ object ReleaseEarly {
                        Keys.isSnapshot.value)
     }
 
+    val pgpPassphrase: Def.Initialize[Option[Array[Char]]] = Def.setting {
+      val currentPassword = Pgp.pgpPassphrase.value
+      val logger = Keys.sLog.value
+      if (currentPassword.isEmpty) {
+        logger.debug(Feedback.LogFetchPgpCredentials)
+        getPgpPassphraseFromEnvironment
+      } else currentPassword
+    }
+
+    val releaseEarlyPublishTo: Def.Initialize[Option[sbt.Resolver]] = {
+      Def.setting {
+        // It is not necessary to use a dynamic setting here.
+        val logger = Keys.sLog.value
+        if (PrivateKeys.releaseEarlyIsSonatype.value) {
+          // Sonatype requires instrumentation of publishTo to work.
+          // Reference: https://github.com/xerial/sbt-sonatype#buildsbt
+          val projectVersion = Keys.version.value
+          if (isOldSnapshot(projectVersion))
+            logger.error(Feedback.UnrecognisedPublisher)
+          Some(sbt.Opts.resolver.sonatypeStaging)
+        } else (Keys.publishTo in Bintray.bintray).value
+      }
+    }
+
+    private final val SonatypeRealm = "Sonatype Nexus Repository Manager"
+    private final val SonatypeHost = "oss.sonatype.org"
+    val releaseEarlySonatypeCredentials
+      : Def.Initialize[Task[Seq[sbt.Credentials]]] = {
+      import sbt.{Credentials, DirectCredentials, FileCredentials}
+      Def.task {
+        val logger = Keys.streams.value.log
+        val currentCredentials = Keys.credentials.value
+        val existingSonatypeCredential = currentCredentials.find {
+          case credentials: DirectCredentials =>
+            credentials.realm == SonatypeRealm && credentials.host == SonatypeHost
+          // The code in sbt-sonatype does not use file credentials, this is safe.
+          case fileCredentials: FileCredentials => false
+        }
+
+        if (existingSonatypeCredential.isEmpty) {
+          getSonatypeCredentials.orElse(getExtraSonatypeCredentials) match {
+            case Some((user, passwd)) =>
+              logger.debug(Feedback.LogAddSonatypeCredentials)
+              val newCredentials =
+                Credentials(SonatypeRealm, SonatypeHost, user, passwd)
+              currentCredentials :+ newCredentials
+            case _ => currentCredentials
+          }
+        } else currentCredentials
+      }
+    }
+
     val releaseEarlyEnableLocalReleases: Def.Initialize[Boolean] =
       Def.setting(false)
 
@@ -138,8 +206,8 @@ object ReleaseEarly {
           val managedClasspath = (Keys.managedClasspath in sbt.Runtime).value
           val moduleIds = managedClasspath.flatMap(_.get(Keys.moduleID.key))
           // NOTE that we don't use sbt-release-early snapshot definition here.
-          val snapshots = moduleIds.filter(m =>
-            m.isChanging || m.revision.endsWith("-SNAPSHOT"))
+          val snapshots =
+            moduleIds.filter(m => m.isChanging || isOldSnapshot(m.revision))
           if (snapshots.nonEmpty)
             sys.error(Feedback.detectedSnapshotsDependencies(snapshots))
           else Def.task(())
@@ -172,7 +240,6 @@ object ReleaseEarly {
 
     val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
       val state = Keys.state.value
-      val underlyingPublisher = ThisPluginKeys.releaseEarlyWith.value
       if (PrivateKeys.releaseEarlyIsSonatype.value) sonatypeRelease(state)
       else Bintray.bintrayRelease
     }
@@ -279,6 +346,9 @@ trait Helper {
   import sbt.Keys
   import sbt.State
   import ReleaseEarly.PrivateKeys
+
+  def isOldSnapshot(version: String): Boolean =
+    version.endsWith("-SNAPSHOT")
 
   def noArtifactToPublish: Def.Initialize[Task[Boolean]] = Def.task {
     import Keys.publishArtifact
@@ -415,6 +485,11 @@ trait Helper {
       password <- sys.env.get("SONATYPE_PASSWORD")
     } yield (name, password)
   }
+
+  private val PgpPasswordId = "PGP_PASSWORD"
+  private val PgpPassId = "PGP_PASS"
+  protected def getPgpPassphraseFromEnvironment: Option[Array[Char]] =
+    sys.env.get(PgpPasswordId).orElse(sys.env.get(PgpPassId)).map(_.toArray)
 
   private val PropertyKeys = ("sona.user", "sona.pass")
 

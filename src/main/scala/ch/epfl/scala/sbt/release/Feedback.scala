@@ -1,6 +1,7 @@
 package ch.epfl.scala.sbt.release
 
 import bintray.BintrayPlugin
+import com.typesafe.sbt.pgp.PgpKeys
 import sbt.Keys
 
 object Feedback {
@@ -27,6 +28,11 @@ object Feedback {
     s"${prefix}Syncing $projectName's artifacts to Maven Central."
   def logReleaseEarly(projectName: String) =
     s"${prefix}Executing release process for $projectName."
+
+  val LogFetchPgpCredentials =
+    s"${prefix}Trying to fetch `${PgpKeys.pgpPassphrase.key.label} in Global` from the environment."
+    val LogAddSonatypeCredentials =
+    s"${prefix}Adding sonatype credentials to `${Keys.credentials.key.label}` caught from the environment."
 
   val forceValidLicense = s"""
       |Maven Central requires your POM files to use a valid license id.
@@ -56,9 +62,9 @@ object Feedback {
   val missingVcsUrl =
     s"""
       |The vcs url information is missing. Make sure that:
-      |  * The key `${Keys.scmInfo.key}` is defined and correctly scoped; or
-      |  * The key `${Keys.pomExtra.key}` does contain the scm url xml node; or
-      |  * The key `${BintrayPlugin.autoImport.bintrayVcsUrl.key}` is defined and correctly scoped.
+      |  * The key `${Keys.scmInfo.key.label}` is defined and correctly scoped; or
+      |  * The key `${Keys.pomExtra.key.label}` does contain the scm url xml node; or
+      |  * The key `${BintrayPlugin.autoImport.bintrayVcsUrl.key.label}` is defined and correctly scoped.
       |
       |Use `inspect` to check the scopes of your current definitions.
       |$RecommendedScope
@@ -75,8 +81,10 @@ object Feedback {
     """.stripMargin
 
   import ReleaseEarlyPlugin.autoImport.releaseEarlyWith
-  val unrecognisedPublisher: String =
-    s"The publisher backend selected in `${releaseEarlyWith.key.label}` is unrecognised."
+  val UnrecognisedPublisher: String =
+    s"{$prefix}The publisher backend selected in `${releaseEarlyWith.key.label}` is unrecognised."
+  def unsupportedSnapshot(version: String): String =
+    s"{$prefix}Detected snapshot version: $version. SNAPSHOTs are not supported."
 
   def skipSyncToMaven(projectName: String) =
     s"${prefix}Skipping Maven Central synchronization for $projectName."
