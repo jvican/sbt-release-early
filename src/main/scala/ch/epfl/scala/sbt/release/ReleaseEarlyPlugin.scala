@@ -240,8 +240,15 @@ object ReleaseEarly {
 
     val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
       val state = Keys.state.value
-      if (PrivateKeys.releaseEarlyIsSonatype.value) sonatypeRelease(state)
-      else Bintray.bintrayRelease
+      val logger = Keys.streams.value.log
+      val projectName = Keys.name.value
+      if (PrivateKeys.releaseEarlyIsSonatype.value) {
+        logger.info(Feedback.logReleaseSonatype(projectName))
+        sonatypeRelease(state)
+      } else {
+        logger.info(Feedback.logReleaseBintray(projectName))
+        Bintray.bintrayRelease
+      }
     }
 
     val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
@@ -311,8 +318,9 @@ object ReleaseEarly {
       Def.taskDyn {
         val logger = Keys.streams.value.log
         val projectName = Keys.name.value
+        val bintrayIsEnabled = !PrivateKeys.releaseEarlyIsSonatype.value
         val mustSyncToMaven: Boolean = (
-          !PrivateKeys.releaseEarlyIsSonatype.value &&
+          bintrayIsEnabled &&
             ThisPluginKeys.releaseEarlyInsideCI.value &&
             ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
             !Keys.isSnapshot.value
@@ -322,7 +330,9 @@ object ReleaseEarly {
             logger.info(Feedback.logSyncToMaven(projectName))
             bintray.BintrayKeys.bintraySyncMavenCentral.value
           }
-        } else Def.task(logger.info(Feedback.skipSyncToMaven(projectName)))
+        } else if (bintrayIsEnabled) {
+          Def.task(logger.info(Feedback.skipSyncToMaven(projectName)))
+        } else Def.task(())
       }
     }
 

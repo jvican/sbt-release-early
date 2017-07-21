@@ -28,10 +28,14 @@ object Feedback {
     s"${prefix}Syncing $projectName's artifacts to Maven Central."
   def logReleaseEarly(projectName: String) =
     s"${prefix}Executing release process for $projectName."
+  def logReleaseSonatype(projectName: String) =
+    s"${prefix}Releasing $projectName to Sonatype."
+  def logReleaseBintray(projectName: String) =
+    s"${prefix}Releasing $projectName to Bintray."
 
   val LogFetchPgpCredentials =
     s"${prefix}Trying to fetch `${PgpKeys.pgpPassphrase.key.label} in Global` from the environment."
-    val LogAddSonatypeCredentials =
+  val LogAddSonatypeCredentials =
     s"${prefix}Adding sonatype credentials to `${Keys.credentials.key.label}` caught from the environment."
 
   val forceValidLicense = s"""
