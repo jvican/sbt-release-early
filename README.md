@@ -29,9 +29,8 @@ Add the latest version of this library to your project with the following sbt li
 addSbtPlugin("ch.epfl.scala" % "sbt-release-early" % "1.0.2")
 ```
 
-#### Non-final releases
+#### Non-final releases (optional)
 
-(optional)
 To depend on a non-final release of `sbt-release-early`, add this resolver to
 your build:
 
