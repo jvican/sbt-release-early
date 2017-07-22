@@ -20,10 +20,9 @@ Goals:
 1. Users do not need to beg maintainers to release.
 1. Open-source contributors have access to their changes as soon as their PRs are merged.
 
-## Docs
+## Read the docs
 
-Read the docs in [our detailed
-wiki](https://github.com/scalacenter/sbt-release-early/wiki).
+The docs are placed in a [detailed GitHub wiki](https://github.com/scalacenter/sbt-release-early/wiki).
 
 It explains how to:
 * Install and use the plugin.
