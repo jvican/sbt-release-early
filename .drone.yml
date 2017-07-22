@@ -1,9 +1,10 @@
-clone:
-  recursive: true
-  submodule_override:
-    wiki: https://github.com/scalacenter/sbt-release-early.wiki.git
-
 pipeline:
+  clone:
+    tags: true
+    recursive: true
+    submodule_override:
+      wiki: https://github.com/scalacenter/sbt-release-early.wiki.git
+
   sftp_cache:
     image: plugins/sftp-cache
     restore: true
@@ -23,7 +24,7 @@ pipeline:
     environment:
       - DRONE_DIR=/drone
     commands:
-      - git fetch --tags && git log | head -n 20
+      - git log | head -n 20
       - /usr/local/bin/setup_keys.sh 
       - /usr/local/bin/store_credentials.sh 
       - sbt clean debug scripted
@@ -40,7 +41,7 @@ pipeline:
     environment:
       - DRONE_DIR=/drone
     commands:
-      - git fetch --tags && git log | head -n 20
+      - git log | head -n 20
       - /usr/local/bin/setup_keys.sh 
       - /usr/local/bin/store_credentials.sh 
       - sbt releaseEarly
