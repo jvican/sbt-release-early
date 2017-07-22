@@ -13,6 +13,5 @@ lazy val `sbt-release-early` = project
       "-Xmx1g",
       "-Xss16m"
     ),
-    scriptedBufferLog := false,
-    fork in Test := true
+    scriptedBufferLog := false
   )
