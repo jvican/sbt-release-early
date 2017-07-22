@@ -1,5 +1,6 @@
 pipeline:
   clone:
+    image: plugins/git
     tags: true
     recursive: true
     submodule_override:
