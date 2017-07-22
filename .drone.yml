@@ -13,9 +13,10 @@ pipeline:
 
   build:
     image: scalacenter/scala:1.3
-    recursive: true
-    submodule_override:
-      wiki: https://github.com/scalacenter/sbt-release-early.wiki.git
+    clone:
+      recursive: true
+      submodule_override:
+        wiki: https://github.com/scalacenter/sbt-release-early.wiki.git
     volumes:
       - /fake-scalacenter:/keys
     environment:
@@ -30,9 +31,10 @@ pipeline:
     # Mount from an identical image but with different id
     # so that sonatype environment variables are not accessible
     image: scalacenter/scala-publish:1.3
-    recursive: true
-    submodule_override:
-      wiki: https://github.com/scalacenter/sbt-release-early.wiki.git
+    clone:
+      recursive: true
+      submodule_override:
+        wiki: https://github.com/scalacenter/sbt-release-early.wiki.git
     volumes:
       - /scalacenter:/keys
     when:
