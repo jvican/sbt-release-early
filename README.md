@@ -17,7 +17,7 @@
 artifacts on merge and via git tags, and automates all the necessary steps to
 make releasing easy.
 
-Goals:
+#### Goals:
 1. Maintainers cut and handle releases in a breeze.
 1. Users do not need to beg maintainers to release.
 1. Open-source contributors have access to their changes as soon as their PRs are merged.
