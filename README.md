@@ -13,7 +13,7 @@
 ## Meet `sbt-release-early`
 
 `sbt-release-early` is an sbt plugin to follow the maxim
-`"Release early, release often"`. It provides an automatic way to release
+*"Release early, release often"*. It provides an automatic way to release
 artifacts on merge and via git tags, and automates all the necessary steps to
 make releasing easy.
 
