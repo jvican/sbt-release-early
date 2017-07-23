@@ -28,7 +28,7 @@ pipeline:
       - git log | head -n 20
       - /usr/local/bin/setup_keys.sh 
       - /usr/local/bin/store_credentials.sh 
-      - sbt clean debug scripted
+      - sbt clean scripted
 
   publish:
     # Mount from an identical image but with different id
