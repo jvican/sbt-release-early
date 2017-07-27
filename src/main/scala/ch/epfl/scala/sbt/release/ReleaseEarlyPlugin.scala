@@ -243,7 +243,7 @@ object ReleaseEarly {
         val projectName = Keys.name.value
         logger.info(Feedback.logReleaseSonatype(projectName))
         // Trick to make sure that 'sonatypeRelease' does not change the name
-        import Sonatype.{sonatypeRelease => _}
+        import Sonatype.{sonatypeRelease => _, sonatypeOpen => _}
         val toRun = s";sonatypeOpen $projectName;publishSigned;sonatypeRelease"
         runCommandAndRemaining(toRun)(state)
         ()
