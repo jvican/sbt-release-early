@@ -49,7 +49,7 @@ lazy val root = project
   .settings(noPublish)
   .settings(buildSettings)
   .settings(scriptedTest)
-  .aggregate(p1)//, p2)
+  .aggregate(p1, p2)
 
 lazy val p1 = project
   .in(file("p1"))
@@ -57,13 +57,11 @@ lazy val p1 = project
   .settings(scriptedTest)
   .settings(scalaVersion := "2.11.8")
 
-/*
 lazy val p2 = project
   .in(file("p2"))
   .settings(scriptedTest)
   .settings(requiredSettings)
   .settings(scalaVersion := "2.11.8")
-*/
 
 val allowed = "0123456789abcdef"
 val randomVersion =

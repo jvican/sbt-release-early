@@ -67,7 +67,7 @@ object ReleaseEarlyKeys {
 }
 
 object ReleaseEarly {
-  import sbt.{Keys, SettingKey, settingKey}
+  import sbt.{Keys, Tags, SettingKey, settingKey}
 
   import ReleaseEarlyPlugin.autoImport._
   import xerial.sbt.Sonatype.{SonatypeCommand => Sonatype}
@@ -75,13 +75,16 @@ object ReleaseEarly {
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
+  final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
+
   val globalSettings: Seq[Setting[_]] = Seq(
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     Keys.credentials := Defaults.releaseEarlySonatypeCredentials.value,
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
-    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
+    Keys.concurrentRestrictions += Tags.limit(SingleThreadedRelease, 1)
   )
 
   val buildSettings: Seq[Setting[_]] = Seq(
@@ -236,12 +239,13 @@ object ReleaseEarly {
     } dependsOn (Bintray.bintrayEnsureLicenses)
 
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
+      // It looks like, for some reason, sonatype cannot be executed concurrently
       Def.task {
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _}
         runCommandAndRemaining("sonatypeRelease")(state)
         ()
-      }
+      }.tag(SingleThreadedRelease)
     }
 
     val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
