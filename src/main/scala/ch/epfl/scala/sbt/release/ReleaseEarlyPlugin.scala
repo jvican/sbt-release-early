@@ -231,37 +231,47 @@ object ReleaseEarly {
 
     val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
       // If sonatype, always use `publishSigned` and ignore `publish`
-      if (PrivateKeys.releaseEarlyIsSonatype.value) Pgp.PgpKeys.publishSigned
+      if (PrivateKeys.releaseEarlyIsSonatype.value) sonatypePublishAndRelease
       // If it's not sonatype, it's bintray... use signed for stable releases
       else if (!Keys.isSnapshot.value) Pgp.PgpKeys.publishSigned
       // Else, non-stable releases leverage Bintray's hijacked publish task
       else Keys.publish
     } dependsOn (Bintray.bintrayEnsureLicenses)
 
+    private def sonatypePublishAndRelease: Def.Initialize[Task[Unit]] = {
+      // Unfortunately, sbt-sonatype has a logical dependency between these tasks
+      import Pgp.PgpKeys.publishSigned
+      val combinedTask = Def.taskDyn(
+        Def.sequential(publishSigned, sonatypeRelease(Keys.state.value))
+      )
+      combinedTask.tag(SingleThreadedRelease)
+    }
+
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
       // It looks like, for some reason, sonatype cannot be executed concurrently
       Def.task {
         val logger = Keys.streams.value.log
-        val projectId = Keys.thisProject.value.id
-        logger.info(s"Running `sonatypeRelease` for project $projectId")
+        val projectName = Keys.name.value
+        logger.info(Feedback.logReleaseSonatype(projectName))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _}
-        runCommandAndRemaining(s";project $projectId;sonatypeRelease")(state)
+        runCommandAndRemaining(s"sonatypeRelease")(state)
         ()
-      }.tag(SingleThreadedRelease)
+      }
     }
 
+    /* For now, this task only execute `bintrayRelease`, `sonatypeRelease`
+     * is tightly tied to `publishSigned` and cannot be easily decoupled.
+     * Both have to be executed one after the other on and exclusively,
+     * meaning that concurrency is not accepted. */
     val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
       val state = Keys.state.value
       val logger = Keys.streams.value.log
       val projectName = Keys.name.value
-      if (PrivateKeys.releaseEarlyIsSonatype.value) {
-        logger.info(Feedback.logReleaseSonatype(projectName))
-        sonatypeRelease(state)
-      } else {
+      if (!PrivateKeys.releaseEarlyIsSonatype.value) {
         logger.info(Feedback.logReleaseBintray(projectName))
         Bintray.bintrayRelease
-      }
+      } else Def.task(())
     }
 
     val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
