@@ -241,9 +241,12 @@ object ReleaseEarly {
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
       // It looks like, for some reason, sonatype cannot be executed concurrently
       Def.task {
+        val logger = Keys.streams.value.log
+        val projectId = Keys.thisProject.value.id
+        logger.info(s"Running `sonatypeRelease` for project $projectId")
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _}
-        runCommandAndRemaining("sonatypeRelease")(state)
+        runCommandAndRemaining(s";project $projectId;sonatypeRelease")(state)
         ()
       }.tag(SingleThreadedRelease)
     }
