@@ -75,13 +75,16 @@ object ReleaseEarly {
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
+  final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
+
   val globalSettings: Seq[Setting[_]] = Seq(
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
     Keys.credentials := Defaults.releaseEarlySonatypeCredentials.value,
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
-    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
+    Keys.concurrentRestrictions += Tags.exclusive(SingleThreadedRelease)
   )
 
   val buildSettings: Seq[Setting[_]] = Seq(
@@ -225,7 +228,8 @@ object ReleaseEarly {
 
     val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
       // If sonatype, always use `publishSigned` and ignore `publish`
-      if (PrivateKeys.releaseEarlyIsSonatype.value) sonatypeRelease(Keys.state.value)
+      if (PrivateKeys.releaseEarlyIsSonatype.value)
+        sonatypeRelease(Keys.state.value).tag(SingleThreadedRelease)
       // If it's not sonatype, it's bintray... use signed for stable releases
       else if (!Keys.isSnapshot.value) Pgp.PgpKeys.publishSigned
       // Else, non-stable releases leverage Bintray's hijacked publish task
