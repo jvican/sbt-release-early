@@ -5,7 +5,6 @@ $ exec git tag -a v0.1.0 -m "v0.1.0"
 
 > show version
 > p1/compile
-> p2/compile
 > dynverAssertVersion
 > randomizeVersion
 > reload

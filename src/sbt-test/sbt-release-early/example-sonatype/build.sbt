@@ -49,7 +49,7 @@ lazy val root = project
   .settings(noPublish)
   .settings(buildSettings)
   .settings(scriptedTest)
-  .aggregate(p1, p2)
+  .aggregate(p1)//, p2)
 
 lazy val p1 = project
   .in(file("p1"))
