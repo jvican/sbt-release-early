@@ -71,12 +71,9 @@ object ReleaseEarly {
 
   import ReleaseEarlyPlugin.autoImport._
   import xerial.sbt.Sonatype.{SonatypeCommand => Sonatype}
-  import xerial.sbt.Sonatype.{autoImport => SonatypeKeys}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
-
-  final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
 
   val globalSettings: Seq[Setting[_]] = Seq(
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
@@ -84,8 +81,7 @@ object ReleaseEarly {
     Keys.credentials := Defaults.releaseEarlySonatypeCredentials.value,
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
-    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
-    Keys.concurrentRestrictions += Tags.exclusive(SingleThreadedRelease)
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
   )
 
   val buildSettings: Seq[Setting[_]] = Seq(
@@ -113,7 +109,7 @@ object ReleaseEarly {
     releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
-    releaseEarlyPublish := Defaults.releaseEarlyPublish.tag(SingleThreadedRelease).value,
+    releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
     releaseEarlyClose := Defaults.releaseEarlyClose.value,
     releaseEarlyProcess := Defaults.releaseEarlyProcess.value,
     PrivateKeys.releaseEarlyIsSonatype := Defaults.releaseEarlyIsSonatype.value
@@ -134,14 +130,12 @@ object ReleaseEarly {
         val commitPart = info.commitSuffix.mkString("+", "+", "")
         info.ref.dropV.value + commitPart + info.dirtySuffix.value
       }
-      customVersion.getOrElse(
-        OriginalDynVer.fallback(DynVer.dynverCurrentDate.value))
+      customVersion.getOrElse(OriginalDynVer.fallback(DynVer.dynverCurrentDate.value))
     }
 
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
-      isDynVerSnapshot(DynVer.dynverGitDescribeOutput.value,
-                       Keys.isSnapshot.value)
+      isDynVerSnapshot(DynVer.dynverGitDescribeOutput.value, Keys.isSnapshot.value)
     }
 
     val pgpPassphrase: Def.Initialize[Option[Array[Char]]] = Def.setting {
@@ -170,8 +164,7 @@ object ReleaseEarly {
 
     private final val SonatypeRealm = "Sonatype Nexus Repository Manager"
     private final val SonatypeHost = "oss.sonatype.org"
-    val releaseEarlySonatypeCredentials
-      : Def.Initialize[Task[Seq[sbt.Credentials]]] = {
+    val releaseEarlySonatypeCredentials: Def.Initialize[Task[Seq[sbt.Credentials]]] = {
       import sbt.{Credentials, DirectCredentials, FileCredentials}
       Def.task {
         val logger = Keys.streams.value.log
@@ -232,37 +225,23 @@ object ReleaseEarly {
 
     val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
       // If sonatype, always use `publishSigned` and ignore `publish`
-      if (PrivateKeys.releaseEarlyIsSonatype.value) sonatypePublishAndRelease
+      if (PrivateKeys.releaseEarlyIsSonatype.value) sonatypeRelease(Keys.state.value)
       // If it's not sonatype, it's bintray... use signed for stable releases
       else if (!Keys.isSnapshot.value) Pgp.PgpKeys.publishSigned
       // Else, non-stable releases leverage Bintray's hijacked publish task
       else Keys.publish
     } dependsOn (Bintray.bintrayEnsureLicenses)
 
-    private def sonatypePublishAndRelease: Def.Initialize[Task[Unit]] = {
-      // Unfortunately, sbt-sonatype has a logical dependency between these tasks
-      import Pgp.PgpKeys.publishSigned
-      val wrapperTask = Def.taskDyn {
-        val state = Keys.state.value
-        sonatypeRelease(state)
-          .dependsOn(publishSigned)
-          .tag(SingleThreadedRelease)
-      }
-      wrapperTask
-    }
-
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
-      // It looks like, for some reason, sonatype cannot be executed concurrently
+      // sbt-sonatype needs these task to run sequentially :(
       Def.task {
         val logger = Keys.streams.value.log
         val projectName = Keys.name.value
         logger.info(Feedback.logReleaseSonatype(projectName))
-        val extracted = sbt.Project.extract(Keys.state.value)
-        val profile = extracted.getOpt(SonatypeKeys.sonatypeStagingRepositoryProfile)
-        profile.foreach(p => logger.info(s"Current sonatype profile: $p"))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _}
-        runCommandAndRemaining(s"sonatypeRelease")(state)
+        val toRun = s";sonatypeOpen $projectName;publishSigned;sonatypeRelease"
+        runCommandAndRemaining(toRun)(state)
         ()
       }
     }
@@ -500,8 +479,7 @@ trait Helper {
   }
 
   import sbtdynver.GitDescribeOutput
-  def isDynVerSnapshot(gitInfo: Option[GitDescribeOutput],
-                       defaultValue: Boolean): Boolean = {
+  def isDynVerSnapshot(gitInfo: Option[GitDescribeOutput], defaultValue: Boolean): Boolean = {
     val isStable = gitInfo.map { info =>
       info.ref.value.startsWith("v") &&
       (info.commitSuffix.distance <= 0 || info.commitSuffix.sha.isEmpty)
@@ -538,8 +516,7 @@ trait Helper {
     * As we cannot access the sbt-bintray cache, we need to use the existing
     * infrastructure to support these extra environment variables.
     */
-  protected def persistExtraSonatypeCredentials(
-      credentials: (String, String)): Unit = {
+  protected def persistExtraSonatypeCredentials(credentials: (String, String)): Unit = {
     sys.props += PropertyKeys._1 -> credentials._1
     sys.props += PropertyKeys._2 -> credentials._2
   }
