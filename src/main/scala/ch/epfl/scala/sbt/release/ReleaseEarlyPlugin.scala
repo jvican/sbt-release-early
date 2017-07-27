@@ -71,6 +71,7 @@ object ReleaseEarly {
 
   import ReleaseEarlyPlugin.autoImport._
   import xerial.sbt.Sonatype.{SonatypeCommand => Sonatype}
+  import xerial.sbt.Sonatype.{autoImport => SonatypeKeys}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
@@ -241,10 +242,13 @@ object ReleaseEarly {
     private def sonatypePublishAndRelease: Def.Initialize[Task[Unit]] = {
       // Unfortunately, sbt-sonatype has a logical dependency between these tasks
       import Pgp.PgpKeys.publishSigned
-      val combinedTask = Def.taskDyn(
-        Def.sequential(publishSigned, sonatypeRelease(Keys.state.value))
-      )
-      combinedTask.tag(SingleThreadedRelease)
+      val wrapperTask = Def.taskDyn {
+        val state = Keys.state.value
+        sonatypeRelease(state)
+          .dependsOn(publishSigned)
+          .tag(SingleThreadedRelease)
+      }
+      wrapperTask
     }
 
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
@@ -253,6 +257,9 @@ object ReleaseEarly {
         val logger = Keys.streams.value.log
         val projectName = Keys.name.value
         logger.info(Feedback.logReleaseSonatype(projectName))
+        val extracted = sbt.Project.extract(Keys.state.value)
+        val profile = extracted.getOpt(SonatypeKeys.sonatypeStagingRepositoryProfile)
+        profile.foreach(p => logger.info(s"Current sonatype profile: $p"))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _}
         runCommandAndRemaining(s"sonatypeRelease")(state)
