@@ -33,7 +33,6 @@ object BuildDefaults {
     Keys.licenses := Seq(
       "MPL-2.0" -> url("http://opensource.org/licenses/MPL-2.0")),
     Keys.homepage := Some(ThisRepo),
-    Keys.autoAPIMappings := true,
     Keys.scmInfo := Some(
       ScmInfo(ThisRepo,
               "scm:git:git@github.com:scalacenter/sbt-release-early.git")),
