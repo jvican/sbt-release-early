@@ -27,7 +27,7 @@ necessary steps to make releasing easy.
 
 The docs are placed in a [detailed GitHub wiki](https://github.com/scalacenter/sbt-release-early/wiki).
 They have been carefully written to contain all the information you may need to publish any package
-in sbt. If something is missing, please contribute to it, it's open to external editions.
+in sbt. If something is missing, please contribute to them, the wiki is open to external editions.
 
 It explains how to:
 
