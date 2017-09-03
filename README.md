@@ -29,12 +29,12 @@ The docs are placed in a [detailed GitHub wiki](https://github.com/scalacenter/s
 They have been carefully written to contain all the information you may need to publish any package
 in sbt. If something is missing, please contribute to them, the wiki is open to external editions.
 
-It explains how to:
+They explain:
 
 * The philosophy.
-* Install, use and configure the plugin.
-* Set up your CI, gpg and related infrastructure.
-* Release with ease for different backends and CIs.
+* How to install, use and configure the plugin.
+* How to set up your CI, gpg and related infrastructure.
+* How to release for different backends and CIs.
 
 ## Contributing
 
