@@ -52,7 +52,7 @@ software and helping you sharpen your open-source Scala skills.
 If you like this work and have the financial means, we encourage you to either donate to the
 open-source Scala community or the [Scala Center](https://scala.epfl.ch).
 If you're a company, we encourage you to become an [Scala Center's Advisory Board member](scalacenter)
-and have a say in your projects and the future of the language.
+and have a say in our projects and the future of the Scala language.
 
 The interactions on this repository and its ecosystem are governed by the [Scala Code of Conduct](https://www.scala-lang.org/conduct.html).
 
