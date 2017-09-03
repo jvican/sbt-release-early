@@ -84,13 +84,13 @@ object ReleaseEarly {
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
     Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
-    Keys.concurrentRestrictions += Tags.exclusive(SingleThreadedRelease)
+    Keys.concurrentRestrictions += Tags.exclusive(SingleThreadedRelease),
+    releaseEarlyWith := Defaults.releaseEarlyWith.value
   )
 
   val buildSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
-    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
-    releaseEarlyWith := Defaults.releaseEarlyWith.value
+    Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
   )
 
   object PrivateKeys {
