@@ -3,6 +3,8 @@ lazy val `sbt-release-early` = project
   .settings(ScriptedPlugin.scriptedSettings)
   .settings(
     sbtPlugin := true,
+    pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
+    pgpSecretRing := file("/drone/.gnupg/secring.asc"),
     scalaVersion := "2.10.6",
     addSbtPlugin("ch.epfl.scala" % "sbt-bintray" % "0.5.0"),
     addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.1"),

@@ -38,9 +38,10 @@ object BuildDefaults {
               "scm:git:git@github.com:scalacenter/sbt-release-early.git")),
     Keys.developers := List(
       GitHubDev("jvican", "Jorge Vicente Cantero", "jorge@vican.me")),
-    // Necessary to publish for our Drone CI -- specific to this repo setup.
-    PgpKeys.pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
-    PgpKeys.pgpSecretRing := file("/drone/.gnupg/secring.asc"),
+    // Sbt bug: this does not work, it's overridden by the default settings.
+    // In order to work, these settings have to be added to build.sbt... :'(
+    // PgpKeys.pgpPublicRing in sbt.Global := file("/drone/.gnupg/pubring.asc"),
+    // PgpKeys.pgpSecretRing in sbt.Global := file("/drone/.gnupg/secring.asc"),
     ReleaseEarlyKeys.releaseEarlyWith := ReleaseEarlyKeys.SonatypePublisher
   )
 

@@ -9,7 +9,7 @@ object ReleaseEarlyPlugin extends AutoPlugin {
 
   override def trigger: PluginTrigger = allRequirements
   override def requires: Plugins =
-    sbtdynver.DynVerPlugin && bintray.BintrayPlugin && xerial.sbt.Sonatype
+    sbtdynver.DynVerPlugin && bintray.BintrayPlugin && xerial.sbt.Sonatype && com.typesafe.sbt.SbtPgp
 
   override def globalSettings: Seq[Def.Setting[_]] =
     ReleaseEarly.globalSettings
