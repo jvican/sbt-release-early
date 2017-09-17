@@ -3,9 +3,7 @@ package ch.epfl.scala.sbt.release
 import sbt.{AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task}
 
 object ReleaseEarlyPlugin extends AutoPlugin {
-  object autoImport
-      extends ReleaseEarlyKeys.ReleaseEarlySettings
-      with ReleaseEarlyKeys.ReleaseEarlyTasks
+  val autoImport = AutoImported
 
   override def trigger: PluginTrigger = allRequirements
   override def requires: Plugins =
@@ -18,6 +16,10 @@ object ReleaseEarlyPlugin extends AutoPlugin {
   override def buildSettings: Seq[Def.Setting[_]] =
     ReleaseEarly.buildSettings
 }
+
+object AutoImported
+    extends ReleaseEarlyKeys.ReleaseEarlySettings
+    with ReleaseEarlyKeys.ReleaseEarlyTasks
 
 object ReleaseEarlyKeys {
   import sbt.{taskKey, settingKey, TaskKey, SettingKey}
