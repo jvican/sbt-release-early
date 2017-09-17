@@ -42,6 +42,10 @@ object ReleaseEarlyKeys {
       settingKey("Release process executed by `releaseEarly`.")
     val releaseEarlyWith: SettingKey[UnderlyingPublisher] =
       settingKey("Specify the publisher to publish your artifacts.")
+    val releaseEarlyNoGpg: SettingKey[Boolean] =
+      settingKey("Don't use `publishSigned` to `publish` stable releases.")
+    val releaseEarlyEnableSyncToMaven: SettingKey[Boolean] =
+      settingKey("Enable synchronization to Maven Central for git tags.")
   }
 
   trait ReleaseEarlyTasks {
@@ -51,8 +55,6 @@ object ReleaseEarlyKeys {
       taskKey("Validate the data to generate a POM file.")
     val releaseEarlySyncToMaven: TaskKey[Unit] =
       taskKey("Synchronize to Maven Central.")
-    val releaseEarlyEnableSyncToMaven: SettingKey[Boolean] =
-      settingKey("Enable synchronization to Maven Central for git tags.")
     val releaseEarlyCheckRequirements: TaskKey[Unit] =
       taskKey("Check the requirements of the environment.")
     val releaseEarlyCheckSnapshotDependencies: TaskKey[Unit] =
@@ -107,6 +109,7 @@ object ReleaseEarly {
     Keys.publishTo := Defaults.releaseEarlyPublishTo.value,
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
+    releaseEarlyNoGpg := Defaults.releaseEarlyNoGpg.value,
     releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
     releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
@@ -231,8 +234,9 @@ object ReleaseEarly {
       if (PrivateKeys.releaseEarlyIsSonatype.value)
         sonatypeRelease(Keys.state.value).tag(SingleThreadedRelease)
       // If it's not sonatype, it's bintray... use signed for stable releases
-      else if (!Keys.isSnapshot.value) Pgp.PgpKeys.publishSigned
-      // Else, non-stable releases leverage Bintray's hijacked publish task
+      else if (!Keys.isSnapshot.value && !ThisPluginKeys.releaseEarlyNoGpg.value)
+        Pgp.PgpKeys.publishSigned
+      // Else, use the normal hijacked bintray publish task
       else Keys.publish
     } dependsOn (Bintray.bintrayEnsureLicenses)
 
@@ -326,6 +330,9 @@ object ReleaseEarly {
 
     val releaseEarlyEnableSyncToMaven: Def.Initialize[Boolean] =
       Def.setting(true)
+
+    val releaseEarlyNoGpg: Def.Initialize[Boolean] =
+      Def.setting(false)
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
@@ -426,9 +433,16 @@ trait Helper {
       )
     )
 
+    val ignoreGpg = ReleaseEarlyPlugin.autoImport.releaseEarlyNoGpg.value
+    val syncToMaven = ReleaseEarlyPlugin.autoImport.releaseEarlyEnableSyncToMaven.value
+    val bintrayInconsistentState = !useSonatype && syncToMaven && ignoreGpg
+    val sonatypeInconsistentState = useSonatype && ignoreGpg
+
     val Checks = List(
       (missingBintrayCredentials, Feedback.missingBintrayCredentials),
-      (missingSonatypeCredentials, Feedback.missingSonatypeCredentials)
+      (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
+      (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState),
+      (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
     )
 
     val hasErrors = Checks.foldLeft(false) {

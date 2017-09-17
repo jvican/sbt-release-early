@@ -33,6 +33,22 @@ object Feedback {
   def logReleaseBintray(projectName: String) =
     s"${prefix}Releasing $projectName to Bintray."
 
+  import ReleaseEarlyPlugin.autoImport.{releaseEarlyNoGpg, releaseEarlyEnableSyncToMaven}
+  val BintrayInconsistentGpgState =
+    s"""${prefix}Inconsistent configuration breaks bintray releases of stable versions:
+       |  1. `${releaseEarlyNoGpg.key.label} := true` and
+       |  2. `${releaseEarlyEnableSyncToMaven.key.label} := true`
+       |
+       |If you ignore gpg completely, you cannot release to Maven Central.
+     """.stripMargin
+
+  val SonatypeInconsistentGpgState =
+    s"""${prefix}Inconsistent configuration breaks any sonatype release.
+      |
+      |When Sonatype is used as the publisher, `${releaseEarlyNoGpg.key.label}` cannot be
+      |set to false because Maven Central requires signed releases.
+    """.stripMargin
+
   val LogFetchPgpCredentials =
     s"${prefix}Trying to fetch `${PgpKeys.pgpPassphrase.key.label} in Global` from the environment."
   val LogAddSonatypeCredentials =
