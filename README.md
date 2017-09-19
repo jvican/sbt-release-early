@@ -21,6 +21,12 @@ necessary steps to make releasing easy.
 1. Open-source contributors have access to their changes as soon as their PRs are merged.
 1. Maintainers can easily change the publisher they use (Bintray or Sonatype) and their CI setup.
 
+## Installation and latest version
+
+Check [the GitHub releases](https://github.com/scalacenter/sbt-release-early/releases) to find out what the last version is.
+
+For installation, [here's a quick link](https://github.com/scalacenter/sbt-release-early/wiki/Essential:-Using-the-plugin) to the pertinent doc page.
+
 ## Read the docs
 
 The docs are placed in a [detailed GitHub wiki](https://github.com/scalacenter/sbt-release-early/wiki).
