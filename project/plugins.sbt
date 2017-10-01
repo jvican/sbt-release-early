@@ -11,6 +11,6 @@ unmanagedSourceDirectories in Compile +=
 // This is required only for the recursive plugin dependency
 // Users of this plugin don't need to add this to their plugins.sbt
 addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.1")
-addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.1")
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0")
 addSbtPlugin("com.dwijnand" % "sbt-dynver" % "2.0.0")
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "1.1")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.0")
