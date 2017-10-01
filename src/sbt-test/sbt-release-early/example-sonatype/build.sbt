@@ -55,13 +55,13 @@ lazy val p1 = project
   .in(file("p1"))
   .settings(requiredSettings)
   .settings(scriptedTest)
-  .settings(scalaVersion := "2.11.8")
+  .settings(scalaVersion := "2.11.11")
 
 lazy val p2 = project
   .in(file("p2"))
   .settings(scriptedTest)
   .settings(requiredSettings)
-  .settings(scalaVersion := "2.11.8")
+  .settings(scalaVersion := "2.11.11")
 
 val allowed = "0123456789abcdef"
 val randomVersion =
