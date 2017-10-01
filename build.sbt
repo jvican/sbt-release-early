@@ -1,6 +1,5 @@
 lazy val `sbt-release-early` = project
   .in(file("."))
-  .settings(ScriptedPlugin.scriptedSettings)
   .settings(
     sbtPlugin := true,
     pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
