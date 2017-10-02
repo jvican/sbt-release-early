@@ -10,4 +10,5 @@ $ exec git tag -a v0.1.0 -m "v0.1.0"
 > randomizeVersion
 > reload
 > show version
-> releaseEarly
+> p1/releaseEarly
+> p2/releaseEarly
