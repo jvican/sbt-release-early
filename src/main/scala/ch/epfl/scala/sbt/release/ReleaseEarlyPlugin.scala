@@ -485,7 +485,7 @@ trait Helper {
       nextState.remainingCommands.toList match {
         case Nil => nextState
         case head :: tail =>
-          runCommand(head.toString, nextState.copy(remainingCommands = tail))
+          runCommand(head.commandLine, nextState.copy(remainingCommands = tail))
       }
     }
     runCommand(command, st.copy(remainingCommands = Nil))
