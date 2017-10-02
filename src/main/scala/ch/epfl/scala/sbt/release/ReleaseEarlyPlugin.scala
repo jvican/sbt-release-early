@@ -469,9 +469,8 @@ trait Helper {
 
     // Ensure licenses before releasing
     val useBintray = !PrivateKeys.releaseEarlyIsSonatype.value
-    if (useBintray) Def.task {
-      bintray.BintrayKeys.bintrayEnsureLicenses.value
-    } else Def.task(())
+    if (useBintray) bintray.BintrayKeys.bintrayEnsureLicenses
+    else Def.task(())
   }
 
   def runCommandAndRemaining(command: String): State => State = { st: State =>

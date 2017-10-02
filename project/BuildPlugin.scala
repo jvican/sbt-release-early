@@ -16,7 +16,7 @@ object BuildPlugin extends AutoPlugin {
 
 object BuildDefaults {
   import sbt.url
-  import sbt.io.syntax._
+  import sbt.io.syntax.fileToRichFile
   import sbt.{ScmInfo, Developer, Resolver, ThisBuild, Watched, Compile, Test}
 
   // This should be added to upstream sbt.
