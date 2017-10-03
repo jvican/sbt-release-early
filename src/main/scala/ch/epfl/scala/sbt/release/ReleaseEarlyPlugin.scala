@@ -380,70 +380,65 @@ trait Helper {
   }
 
   def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.task {
+    import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
     import scala.util.control.Exception.catching
+
     val logger = Keys.streams.value.log
     val projectName = Keys.name.value
-    val useSonatype = PrivateKeys.releaseEarlyIsSonatype.value
 
     logger.info(Feedback.logCheckRequirements(projectName))
 
-    val bintrayCredentialsOpt =
-      catching(classOf[NoSuchElementException])
-        .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
-
-    val bintrayCredentials = {
-      if (useSonatype) {
-        logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-        None
-      } else {
-        bintrayCredentialsOpt
+    def check(checks: (Boolean, String)*): Unit = {
+      val errors = checks.collect { case (false, feedback) =>
+        logger.error(feedback)
       }
+      if (errors.nonEmpty) sys.error(Feedback.fixRequirementErrors)
     }
 
-    val sonatypeCredentials = {
-      if (useSonatype) {
-        getSonatypeCredentials.orElse {
-          // Get extra credentials from optional environment variables
-          val extraCredentials = getExtraSonatypeCredentials
-          extraCredentials.foreach(persistExtraSonatypeCredentials)
-          extraCredentials
-        }
-      } else {
-        logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-        None
-      }
-    }
+    // Using Sonatype publisher
+    if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
 
-    // If not interactive, it means input has to come from environment
-    val missingBintrayCredentials = !useSonatype && bintrayCredentials.isEmpty
-    val missingSonatypeCredentials = (
-      // True if sonatype is the underlying publisher
-      useSonatype && (
-        // Or if Bintray publishes a stable version under interactive mode
+      logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
+
+      val sonatypeCredentials = getSonatypeCredentials.orElse {
+        // Get extra credentials from optional environment variables
+        val extraCredentials = getExtraSonatypeCredentials
+        extraCredentials.foreach(persistExtraSonatypeCredentials)
+        extraCredentials
+      }
+
+      val missingSonatypeCredentials = {
+        sonatypeCredentials.isEmpty &&
         !Keys.isSnapshot.value &&
-          sonatypeCredentials.isEmpty &&
-          !Keys.state.value.interactive
+        !Keys.state.value.interactive
+      }
+
+      val sonatypeInconsistentState =
+        ThisPluginKeys.releaseEarlyNoGpg.value
+
+      check(
+        (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
+        (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
       )
-    )
 
-    val ignoreGpg = ReleaseEarlyPlugin.autoImport.releaseEarlyNoGpg.value
-    val syncToMaven = ReleaseEarlyPlugin.autoImport.releaseEarlyEnableSyncToMaven.value
-    val bintrayInconsistentState = !useSonatype && syncToMaven && ignoreGpg
-    val sonatypeInconsistentState = useSonatype && ignoreGpg
+    // Using Bintray publisher
+    } else Def.task {
 
-    val Checks = List(
-      (missingBintrayCredentials, Feedback.missingBintrayCredentials),
-      (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
-      (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState),
-      (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
-    )
+      val missingBintrayCredentials = {
+        catching(classOf[NoSuchElementException])
+          .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
+          .isEmpty
+      }
 
-    val hasErrors = Checks.foldLeft(false) {
-      case (hasError, (predicate, feedback)) =>
-        if (predicate) { logger.error(feedback); true } else hasError
+      val bintrayInconsistentState =
+        ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
+        ThisPluginKeys.releaseEarlyNoGpg.value
+
+      check(
+        (missingBintrayCredentials, Feedback.missingBintrayCredentials),
+        (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState)
+      )
     }
-
-    if (hasErrors) sys.error(Feedback.fixRequirementErrors)
   }
 
   def validatePomTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
