@@ -281,13 +281,13 @@ object ReleaseEarly {
         val msg = Feedback.skipRelease(Keys.name.value)
         Def.task(logger.info(msg))
       } else {
+        logger.info(Feedback.logReleaseEarly(Keys.name.value))
         val steps = ThisPluginKeys.releaseEarlyProcess.value
         // Return task with unit value at the end
-        val initializedSteps = steps.map(_.toTask)
-        Def.taskDyn {
-          logger.info(Feedback.logReleaseEarly(Keys.name.value))
-          StableDef.sequential(initializedSteps, Def.task(()))
-        }
+        StableDef.sequential(
+          steps.map(_.toTask),
+          Def.task(())
+        )
       }
     }
 
