@@ -1,4 +1,5 @@
-# Ship Scala software now!
+# `sbt-release-early`: release now!
+
 [![Join the chat at https://gitter.im/scalacenter/sbt-release-early](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalacenter/sbt-release-early?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://platform-ci.scala-lang.org/api/badges/scalacenter/sbt-release-early/status.svg)](https://platform-ci.scala-lang.org/scalacenter/sbt-release-early)
 
@@ -8,9 +9,7 @@
 > 
 > — [Rick Sanchez](rick)
 
-## Meet `sbt-release-early`
-
-`sbt-release-early` is an sbt plugin to follow the maxim *"Release early, release often"*. It
+`sbt-release-early` is an opinionated sbt plugin to follow the maxim *"Release early, release often"*. It
 provides an automatic way to release artifacts on merge and via git tags, and automates all the
 necessary steps to make releasing easy.
 
