@@ -31,7 +31,7 @@ object ReleaseEarlyKeys {
 
     import sbt.Global
     private val localReleaseEarlyEnableLocalReleases: SettingKey[Boolean] =
-      settingKey("Enable local releases.")
+      SettingKey("releaseEarlyEnableLocalReleases", "Enable local releases.")
     val releaseEarlyEnableLocalReleases: SettingKey[Boolean] =
       localReleaseEarlyEnableLocalReleases in Global
     private val localReleaseEarlyInsideCI: SettingKey[Boolean] =
