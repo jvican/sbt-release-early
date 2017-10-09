@@ -56,7 +56,8 @@ object BuildDefaults {
     Keys.organization := "ch.epfl.scala",
     Keys.resolvers += Resolver.jcenterRepo,
     Keys.resolvers += Resolver.bintrayIvyRepo("scalacenter", "sbt-releases"),
-    Keys.updateOptions := Keys.updateOptions.value.withCachedResolution(true)
+    Keys.updateOptions := Keys.updateOptions.value.withCachedResolution(true),
+    Keys.publishArtifact in (Compile, Keys.packageDoc) := false
   )
 
   final val projectSettings: Seq[Def.Setting[_]] = Seq(
