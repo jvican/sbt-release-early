@@ -130,17 +130,6 @@ object ReleaseEarly {
      * used inside `Def.taskDyn`. This is reported upstream, unclear if it can be fixed. */
     private val StableDef = new sbt.TaskSequential {}
 
-    // Currently unused, but stays here for future features
-    val dynVer: Def.Initialize[String] = Def.setting {
-      import sbtdynver.{DynVer => OriginalDynVer}
-      val customVersion = DynVer.dynverGitDescribeOutput.value.map { info =>
-        // Use '+' for the distance because it is semver compatible
-        val commitPart = info.commitSuffix.mkString("+", "+", "")
-        info.ref.dropV.value + commitPart + info.dirtySuffix.value
-      }
-      customVersion.getOrElse(OriginalDynVer.fallback(DynVer.dynverCurrentDate.value))
-    }
-
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
       isDynVerSnapshot(DynVer.dynverGitDescribeOutput.value, Keys.isSnapshot.value)
