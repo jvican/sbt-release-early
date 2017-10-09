@@ -4,6 +4,7 @@ lazy val publishSettings = Seq(
   bintrayRepository := "tools",
   bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt"),
   publishTo := (publishTo in bintray).value,
+  releaseEarlyWith := BintrayPublisher,
   publishArtifact in Test := false,
   licenses := Seq(
     // Scala Center license... BSD 3-clause

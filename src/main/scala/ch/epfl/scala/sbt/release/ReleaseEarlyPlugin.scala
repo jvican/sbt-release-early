@@ -190,7 +190,7 @@ object ReleaseEarly {
       Def.setting(false)
 
     val releaseEarlyWith: Def.Initialize[UnderlyingPublisher] =
-      Def.setting(BintrayPublisher)
+      Def.setting(SonatypePublisher)
 
     val releaseEarlyInsideCI: Def.Initialize[Boolean] =
       Def.setting(sys.env.get("CI").isDefined)

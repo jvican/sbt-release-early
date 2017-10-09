@@ -28,6 +28,7 @@ bintrayOrganization := None
 bintrayRepository := "releases"
 bintrayPackage := "root-example"
 publishTo := (publishTo in bintray).value
+releaseEarlyWith := BintrayPublisher
 
 // Release early
 releaseEarlyEnableLocalReleases := true
