@@ -2,6 +2,9 @@ name := "root"
 organization := "me.vican.jorge"
 scalaVersion := "2.12.2"
 
+pgpPublicRing := file("/drone/.gnupg/pubring.asc")
+pgpSecretRing := file("/drone/.gnupg/secring.asc")
+
 homepage := Some(url("https://github.com/jvican/root-example"))
 // The id of this license is incorrect
 licenses := Seq("MPL-2.0" -> url("https://opensource.org/licenses/MPL-2.0"))
@@ -28,3 +31,25 @@ publishTo := (publishTo in bintray).value
 
 // Release early
 releaseEarlyEnableLocalReleases := true
+
+val allowed = "0123456789abcdef"
+val randomVersion =
+  scala.util.Random.alphanumeric
+    .filter((c: Char) => allowed.contains(c))
+    .take(8).mkString("")
+val randomizeVersion = taskKey[Unit]("Randomize version")
+randomizeVersion in ThisBuild := {
+  val currentVersion = version.in(ThisBuild).value
+  val default = currentVersion.endsWith("-SNAPSHOT")
+  import ch.epfl.scala.sbt.release.ReleaseEarly.Defaults
+  if (Defaults.isDynVerSnapshot(dynverGitDescribeOutput.value, default))
+    sys.error("Version has to be derived from a git tag.")
+
+  val logger = state.value.log
+  val newRandomVersion = s"v0.2.0+1-$randomVersion"
+  logger.info(s"Adding random version to test git tag: $newRandomVersion")
+  val process =
+    sbt.Process(s"""git tag -a $newRandomVersion -m hehe""",
+      Option(baseDirectory.in(ThisBuild).value))
+  assert(process.! == 0)
+}

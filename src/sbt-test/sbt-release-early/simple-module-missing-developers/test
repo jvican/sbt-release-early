@@ -1,3 +1,8 @@
+$ exec git init
+$ exec git add .
+$ exec git commit -m "First commit"
+$ exec git tag -a v0.1.0 -m "v0.1.0"
+
 > show version
 # It should fail because the developers information is missing
 -> releaseEarly

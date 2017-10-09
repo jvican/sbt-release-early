@@ -22,22 +22,22 @@ object AutoImported
     with ReleaseEarlyKeys.ReleaseEarlyTasks
 
 object ReleaseEarlyKeys {
-  import sbt.{taskKey, settingKey, TaskKey, SettingKey}
+  import sbt.{taskKey, settingKey, TaskKey, SettingKey, Global}
 
   trait ReleaseEarlySettings {
     trait UnderlyingPublisher
     case object BintrayPublisher extends UnderlyingPublisher
     case object SonatypePublisher extends UnderlyingPublisher
 
-    import sbt.Global
+    // Note that we enforce that these settings will always be scoped globally
     private val localReleaseEarlyEnableLocalReleases: SettingKey[Boolean] =
-      settingKey("Enable local releases.")
+      SettingKey("releaseEarlyEnableLocalReleases", "Enable local releases.")
     val releaseEarlyEnableLocalReleases: SettingKey[Boolean] =
       localReleaseEarlyEnableLocalReleases in Global
     private val localReleaseEarlyInsideCI: SettingKey[Boolean] =
       settingKey("Detect whether sbt is running inside the CI.")
-    val releaseEarlyInsideCI: SettingKey[Boolean] =
-      localReleaseEarlyInsideCI in Global
+    val releaseEarlyInsideCI: SettingKey[Boolean] = localReleaseEarlyInsideCI in Global
+
     val releaseEarlyBypassSnapshotCheck: SettingKey[Boolean] =
       settingKey("Bypass snapshots check, not failing if snapshots are found.")
     val releaseEarlyProcess: SettingKey[Seq[TaskKey[Unit]]] =
@@ -89,7 +89,10 @@ object ReleaseEarly {
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
     Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
     Keys.concurrentRestrictions += Tags.exclusive(SingleThreadedRelease),
-    releaseEarlyWith := Defaults.releaseEarlyWith.value
+    releaseEarlyWith := Defaults.releaseEarlyWith.value,
+    releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
+    releaseEarlyNoGpg := Defaults.releaseEarlyNoGpg.value,
+    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value
   )
 
   val buildSettings: Seq[Setting[_]] = Seq(
@@ -111,11 +114,8 @@ object ReleaseEarly {
     Keys.publishTo := Defaults.releaseEarlyPublishTo.value,
     releaseEarly := Defaults.releaseEarly.value,
     releaseEarlySyncToMaven := Defaults.releaseEarlySyncToMaven.value,
-    releaseEarlyNoGpg := Defaults.releaseEarlyNoGpg.value,
-    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value,
     releaseEarlyValidatePom := Defaults.releaseEarlyValidatePom.value,
     releaseEarlyCheckRequirements := Defaults.releaseEarlyCheckRequirements.value,
-    releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
     releaseEarlyClose := Defaults.releaseEarlyClose.value,
@@ -129,17 +129,6 @@ object ReleaseEarly {
     /* Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference' when
      * used inside `Def.taskDyn`. This is reported upstream, unclear if it can be fixed. */
     private val StableDef = new sbt.TaskSequential {}
-
-    // Currently unused, but stays here for future features
-    val dynVer: Def.Initialize[String] = Def.setting {
-      import sbtdynver.{DynVer => OriginalDynVer}
-      val customVersion = DynVer.dynverGitDescribeOutput.value.map { info =>
-        // Use '+' for the distance because it is semver compatible
-        val commitPart = info.commitSuffix.mkString("+", "+", "")
-        info.ref.dropV.value + commitPart + info.dirtySuffix.value
-      }
-      customVersion.getOrElse(OriginalDynVer.fallback(DynVer.dynverCurrentDate.value))
-    }
 
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
