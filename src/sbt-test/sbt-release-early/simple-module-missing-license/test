@@ -16,4 +16,5 @@ $ copy-file changes/build-wrong-license-id.sbt build.sbt
 $ copy-file changes/build-good.sbt build.sbt
 > reload
 > show version
+> show pgpPublicRing
 > releaseEarly
