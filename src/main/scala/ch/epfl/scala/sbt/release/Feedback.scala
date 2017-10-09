@@ -18,6 +18,8 @@ object Feedback {
     s"${prefix}Skip check of bintray credentials for $projectName because underlying publisher is not bintray."
   def skipSonatypeCredentialsCheck(projectName: String) =
     s"${prefix}Skip check of sonatype credentials for $projectName."
+  def skipInstantRelease(projectName: String, version: String) =
+    s"${prefix}Skip instant release of $projectName for version $version. Instant releases are disabled."
   def logCheckRequirements(projectName: String) =
     s"${prefix}Checking requirements for $projectName."
   def logCheckSnapshots(projectName: String) =
