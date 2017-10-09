@@ -49,7 +49,7 @@ randomizeVersion in ThisBuild := {
   val newRandomVersion = s"v0.2.0+1-$randomVersion"
   logger.info(s"Adding random version to test git tag: $newRandomVersion")
   val process =
-    sbt.Process(s"""git tag -a $newRandomVersion -m hehe""",
+    sys.process.Process(s"""git tag -a $newRandomVersion -m hehe""",
       Option(baseDirectory.in(ThisBuild).value))
   assert(process.! == 0)
 }

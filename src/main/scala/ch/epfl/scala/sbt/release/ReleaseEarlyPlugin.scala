@@ -229,7 +229,7 @@ object ReleaseEarly {
         Pgp.PgpKeys.publishSigned
       // Else, use the normal hijacked bintray publish task
       else Keys.publish
-    } dependsOn (Bintray.bintrayEnsureLicenses)
+    }
 
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
       // sbt-sonatype needs these task to run sequentially :(
@@ -284,10 +284,7 @@ object ReleaseEarly {
         logger.info(Feedback.logReleaseEarly(Keys.name.value))
         val steps = ThisPluginKeys.releaseEarlyProcess.value
         // Return task with unit value at the end
-        StableDef.sequential(
-          steps.map(_.toTask),
-          Def.task(())
-        )
+        StableDef.sequential(steps.map(_.toTask), Def.task(()))
       }
     }
 
@@ -321,8 +318,7 @@ object ReleaseEarly {
     val releaseEarlyEnableSyncToMaven: Def.Initialize[Boolean] =
       Def.setting(true)
 
-    val releaseEarlyNoGpg: Def.Initialize[Boolean] =
-      Def.setting(false)
+    val releaseEarlyNoGpg: Def.Initialize[Boolean] = Def.setting(false)
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
@@ -388,14 +384,13 @@ trait Helper {
     logger.info(Feedback.logCheckRequirements(projectName))
 
     def check(checks: (Boolean, String)*): Unit = {
-      val errors = checks.collect { case (false, feedback) => logger.error(feedback) }
+      val errors = checks.collect { case (true, feedback) => logger.error(feedback) }
       if (errors.nonEmpty) sys.error(Feedback.fixRequirementErrors)
     }
 
     // Using Sonatype publisher
     if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
       logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-
       val sonatypeCredentials = getSonatypeCredentials.orElse {
         // Get extra credentials from optional environment variables
         val extraCredentials = getExtraSonatypeCredentials
@@ -409,9 +404,7 @@ trait Helper {
         !Keys.state.value.interactive
       }
 
-      val sonatypeInconsistentState =
-        ThisPluginKeys.releaseEarlyNoGpg.value
-
+      val sonatypeInconsistentState = ThisPluginKeys.releaseEarlyNoGpg.value
       check(
         (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
         (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
@@ -419,7 +412,6 @@ trait Helper {
 
     // Using Bintray publisher
     } else Def.task {
-
       val missingBintrayCredentials = {
         catching(classOf[NoSuchElementException])
           .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
