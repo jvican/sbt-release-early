@@ -3,6 +3,9 @@ lazy val publishSettings = Seq(
   pgpSecretRing := file("/drone/.gnupg/secring.asc"),
   releaseEarlyWith := SonatypePublisher,
   publishArtifact in Test := false,
+  // Disable publishing of docs and sources
+  publishArtifact in (Compile, packageDoc) := false,
+  publishArtifact in (Compile, packageSrc) := false,
   licenses := Seq(
     // Scala Center license... BSD 3-clause
     "BSD" -> url("http://opensource.org/licenses/BSD-3-Clause")
