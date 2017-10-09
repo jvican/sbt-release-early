@@ -379,7 +379,7 @@ trait Helper {
     )
   }
 
-  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.task {
+  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
     import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
     import scala.util.control.Exception.catching
 
