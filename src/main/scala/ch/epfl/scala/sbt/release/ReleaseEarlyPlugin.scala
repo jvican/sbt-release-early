@@ -385,19 +385,15 @@ trait Helper {
 
     val logger = Keys.streams.value.log
     val projectName = Keys.name.value
-
     logger.info(Feedback.logCheckRequirements(projectName))
 
     def check(checks: (Boolean, String)*): Unit = {
-      val errors = checks.collect { case (false, feedback) =>
-        logger.error(feedback)
-      }
+      val errors = checks.collect { case (false, feedback) => logger.error(feedback) }
       if (errors.nonEmpty) sys.error(Feedback.fixRequirementErrors)
     }
 
     // Using Sonatype publisher
     if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
-
       logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
 
       val sonatypeCredentials = getSonatypeCredentials.orElse {
