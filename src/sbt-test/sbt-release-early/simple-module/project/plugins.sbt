@@ -1,4 +1,3 @@
-logLevel := Level.Warn
 {
   val pluginVersion = System.getProperty("plugin.version")
   if(pluginVersion == null)
