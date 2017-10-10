@@ -128,7 +128,7 @@ object ReleaseEarly {
 
     /* Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference' when
      * used inside `Def.taskDyn`. This is reported upstream, unclear if it can be fixed. */
-    private val StableDef = new sbt.TaskSequential {}
+    private val StableDef = new sbt.internal.TaskSequential {}
 
     // See https://github.com/dwijnand/sbt-dynver/issues/23.
     val isSnapshot: Def.Initialize[Boolean] = Def.setting {
@@ -144,18 +144,18 @@ object ReleaseEarly {
       } else currentPassword
     }
 
-    val releaseEarlyPublishTo: Def.Initialize[Option[sbt.Resolver]] = {
-      Def.setting {
+    val releaseEarlyPublishTo: Def.Initialize[Task[Option[sbt.Resolver]]] = {
+      Def.taskDyn {
         // It is not necessary to use a dynamic setting here.
         val logger = Keys.sLog.value
-        if (PrivateKeys.releaseEarlyIsSonatype.value) {
+        if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
           // Sonatype requires instrumentation of publishTo to work.
           // Reference: https://github.com/xerial/sbt-sonatype#buildsbt
           val projectVersion = Keys.version.value
           if (isOldSnapshot(projectVersion))
             logger.error(Feedback.UnrecognisedPublisher)
           Some(sbt.Opts.resolver.sonatypeStaging)
-        } else (Keys.publishTo in Bintray.bintray).value
+        } else (Keys.publishTo in Bintray.bintray)
       }
     }
 
@@ -229,7 +229,7 @@ object ReleaseEarly {
         Pgp.PgpKeys.publishSigned
       // Else, use the normal hijacked bintray publish task
       else Keys.publish
-    } dependsOn (Bintray.bintrayEnsureLicenses)
+    }
 
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
       // sbt-sonatype needs these task to run sequentially :(
@@ -239,7 +239,7 @@ object ReleaseEarly {
         logger.info(Feedback.logReleaseSonatype(projectName))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _, sonatypeOpen => _}
-        val toRun = s";sonatypeOpen $projectName;publishSigned;sonatypeRelease"
+        val toRun = s";sonatypeOpen $projectName;$projectName/publishSigned;sonatypeRelease"
         runCommandAndRemaining(toRun)(state)
         ()
       }
@@ -250,7 +250,6 @@ object ReleaseEarly {
      * Both have to be executed one after the other on and exclusively,
      * meaning that concurrency is not accepted. */
     val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      val state = Keys.state.value
       val logger = Keys.streams.value.log
       val projectName = Keys.name.value
       if (!PrivateKeys.releaseEarlyIsSonatype.value) {
@@ -282,13 +281,10 @@ object ReleaseEarly {
         val msg = Feedback.skipRelease(Keys.name.value)
         Def.task(logger.info(msg))
       } else {
+        logger.info(Feedback.logReleaseEarly(Keys.name.value))
         val steps = ThisPluginKeys.releaseEarlyProcess.value
         // Return task with unit value at the end
-        val initializedSteps = steps.map(_.toTask)
-        Def.taskDyn {
-          logger.info(Feedback.logReleaseEarly(Keys.name.value))
-          StableDef.sequential(initializedSteps, Def.task(()))
-        }
+        StableDef.sequential(steps.map(_.toTask), Def.task(()))
       }
     }
 
@@ -322,8 +318,7 @@ object ReleaseEarly {
     val releaseEarlyEnableSyncToMaven: Def.Initialize[Boolean] =
       Def.setting(true)
 
-    val releaseEarlyNoGpg: Def.Initialize[Boolean] =
-      Def.setting(false)
+    val releaseEarlyNoGpg: Def.Initialize[Boolean] = Def.setting(false)
 
     val releaseEarlySyncToMaven: Def.Initialize[Task[Unit]] = {
       Def.taskDyn {
@@ -380,71 +375,61 @@ trait Helper {
     )
   }
 
-  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.task {
+  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
+    import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
     import scala.util.control.Exception.catching
+
     val logger = Keys.streams.value.log
     val projectName = Keys.name.value
-    val useSonatype = PrivateKeys.releaseEarlyIsSonatype.value
-
     logger.info(Feedback.logCheckRequirements(projectName))
 
-    val bintrayCredentials = {
-      if (useSonatype) {
-        logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-        None
-      } else {
+    def check(checks: (Boolean, String)*): Unit = {
+      val errors = checks.collect { case (true, feedback) => logger.error(feedback) }
+      if (errors.nonEmpty) sys.error(Feedback.fixRequirementErrors)
+    }
+
+    // Using Sonatype publisher
+    if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
+      logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
+      val sonatypeCredentials = getSonatypeCredentials.orElse {
+        // Get extra credentials from optional environment variables
+        val extraCredentials = getExtraSonatypeCredentials
+        extraCredentials.foreach(persistExtraSonatypeCredentials)
+        extraCredentials
+      }
+
+      val missingSonatypeCredentials = {
+        sonatypeCredentials.isEmpty &&
+        !Keys.isSnapshot.value &&
+        !Keys.state.value.interactive
+      }
+
+      val sonatypeInconsistentState = ThisPluginKeys.releaseEarlyNoGpg.value
+      check(
+        (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
+        (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
+      )
+
+    // Using Bintray publisher
+    } else Def.task {
+      val missingBintrayCredentials = {
         catching(classOf[NoSuchElementException])
           .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
+          .isEmpty
       }
-    }
 
-    val sonatypeCredentials = {
-      if (useSonatype) {
-        getSonatypeCredentials.orElse {
-          // Get extra credentials from optional environment variables
-          val extraCredentials = getExtraSonatypeCredentials
-          extraCredentials.foreach(persistExtraSonatypeCredentials)
-          extraCredentials
-        }
-      } else {
-        logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-        None
-      }
-    }
+      val bintrayInconsistentState =
+        ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
+        ThisPluginKeys.releaseEarlyNoGpg.value
 
-    // If not interactive, it means input has to come from environment
-    val missingBintrayCredentials = !useSonatype && bintrayCredentials.isEmpty
-    val missingSonatypeCredentials = (
-      // True if sonatype is the underlying publisher
-      useSonatype && (
-        // Or if Bintray publishes a stable version under interactive mode
-        !Keys.isSnapshot.value &&
-          sonatypeCredentials.isEmpty &&
-          !Keys.state.value.interactive
+      check(
+        (missingBintrayCredentials, Feedback.missingBintrayCredentials),
+        (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState)
       )
-    )
-
-    val ignoreGpg = ReleaseEarlyPlugin.autoImport.releaseEarlyNoGpg.value
-    val syncToMaven = ReleaseEarlyPlugin.autoImport.releaseEarlyEnableSyncToMaven.value
-    val bintrayInconsistentState = !useSonatype && syncToMaven && ignoreGpg
-    val sonatypeInconsistentState = useSonatype && ignoreGpg
-
-    val Checks = List(
-      (missingBintrayCredentials, Feedback.missingBintrayCredentials),
-      (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
-      (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState),
-      (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
-    )
-
-    val hasErrors = Checks.foldLeft(false) {
-      case (hasError, (predicate, feedback)) =>
-        if (predicate) { logger.error(feedback); true } else hasError
     }
-
-    if (hasErrors) sys.error(Feedback.fixRequirementErrors)
   }
 
-  def validatePomTask: Def.Initialize[Task[Unit]] = Def.task {
+  def validatePomTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
     val logger = Keys.streams.value.log
     logger.info(Feedback.logValidatePom(Keys.name.value))
 
@@ -463,10 +448,12 @@ trait Helper {
         } else hasError
     }
 
+    if (hasErrors) sys.error(Feedback.fixRequirementErrors)
+
     // Ensure licenses before releasing
     val useBintray = !PrivateKeys.releaseEarlyIsSonatype.value
-    if (useBintray) bintray.BintrayKeys.bintrayEnsureLicenses.value
-    if (hasErrors) sys.error(Feedback.fixRequirementErrors)
+    if (useBintray) bintray.BintrayKeys.bintrayEnsureLicenses
+    else Def.task(())
   }
 
   def runCommandAndRemaining(command: String): State => State = { st: State =>
@@ -480,7 +467,7 @@ trait Helper {
       nextState.remainingCommands.toList match {
         case Nil => nextState
         case head :: tail =>
-          runCommand(head, nextState.copy(remainingCommands = tail))
+          runCommand(head.commandLine, nextState.copy(remainingCommands = tail))
       }
     }
     runCommand(command, st.copy(remainingCommands = Nil))

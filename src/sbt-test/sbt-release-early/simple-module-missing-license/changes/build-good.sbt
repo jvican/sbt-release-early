@@ -29,6 +29,10 @@ bintrayRepository := "releases"
 bintrayPackage := "root-example"
 publishTo := (publishTo in bintray).value
 
+// Disable publishing of docs and sources
+publishArtifact in (Compile, packageDoc) := false
+publishArtifact in (Compile, packageSrc) := false
+
 // Release early
 releaseEarlyEnableLocalReleases := true
 
@@ -49,7 +53,7 @@ randomizeVersion in ThisBuild := {
   val newRandomVersion = s"v0.2.0+1-$randomVersion"
   logger.info(s"Adding random version to test git tag: $newRandomVersion")
   val process =
-    sbt.Process(s"""git tag -a $newRandomVersion -m hehe""",
+    sys.process.Process(s"""git tag -a $newRandomVersion -m hehe""",
       Option(baseDirectory.in(ThisBuild).value))
   assert(process.! == 0)
 }

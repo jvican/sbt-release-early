@@ -15,7 +15,8 @@ object BuildPlugin extends AutoPlugin {
 }
 
 object BuildDefaults {
-  import sbt.{url, file, richFile}
+  import sbt.url
+  import sbt.io.syntax.fileToRichFile
   import sbt.{ScmInfo, Developer, Resolver, ThisBuild, Watched, Compile, Test}
 
   // This should be added to upstream sbt.
@@ -55,7 +56,8 @@ object BuildDefaults {
     Keys.organization := "ch.epfl.scala",
     Keys.resolvers += Resolver.jcenterRepo,
     Keys.resolvers += Resolver.bintrayIvyRepo("scalacenter", "sbt-releases"),
-    Keys.updateOptions := Keys.updateOptions.value.withCachedResolution(true)
+    Keys.updateOptions := Keys.updateOptions.value.withCachedResolution(true),
+    Keys.publishArtifact in (Compile, Keys.packageDoc) := false
   )
 
   final val projectSettings: Seq[Def.Setting[_]] = Seq(

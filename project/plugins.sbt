@@ -2,7 +2,7 @@ logLevel := Level.Warn
 resolvers += Classpaths.sbtPluginReleases
 resolvers += Resolver.bintrayIvyRepo("scalaplatform", "tools")
 
-libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
+libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
 
 // This project is its own plugin :)
 unmanagedSourceDirectories in Compile +=

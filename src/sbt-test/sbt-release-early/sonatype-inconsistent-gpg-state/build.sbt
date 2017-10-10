@@ -56,13 +56,13 @@ lazy val p1 = project
   .in(file("p1"))
   .settings(requiredSettings)
   .settings(scriptedTest)
-  .settings(scalaVersion := "2.11.8")
+  .settings(scalaVersion := "2.11.11")
 
 lazy val p2 = project
   .in(file("p2"))
   .settings(scriptedTest)
   .settings(requiredSettings)
-  .settings(scalaVersion := "2.11.8")
+  .settings(scalaVersion := "2.11.11")
 
 val allowed = "0123456789abcdef"
 val randomVersion =
@@ -81,7 +81,7 @@ randomizeVersion in ThisBuild := {
   val newRandomVersion = s"v0.2.0+1-$randomVersion"
   logger.info(s"Adding random version to test git tag: $newRandomVersion")
   val process =
-    sbt.Process(s"""git tag -a $newRandomVersion -m hehe""",
+    sys.process.Process(s"""git tag -a $newRandomVersion -m hehe""",
                 Option(baseDirectory.in(ThisBuild).value))
   assert(process.! == 0)
 }
