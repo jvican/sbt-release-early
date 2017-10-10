@@ -37,6 +37,10 @@ object ReleaseEarlyKeys {
     private val localReleaseEarlyInsideCI: SettingKey[Boolean] =
       settingKey("Detect whether sbt is running inside the CI.")
     val releaseEarlyInsideCI: SettingKey[Boolean] = localReleaseEarlyInsideCI in Global
+    private val localReleaseEarlyEnableInstantReleases: SettingKey[Boolean] =
+      SettingKey("releaseEarlyEnableInstantReleases", "Enable instant releases. By default, true.")
+    val releaseEarlyEnableInstantReleases: SettingKey[Boolean] =
+      localReleaseEarlyEnableInstantReleases in Global
 
     val releaseEarlyBypassSnapshotCheck: SettingKey[Boolean] =
       settingKey("Bypass snapshots check, not failing if snapshots are found.")
@@ -84,6 +88,7 @@ object ReleaseEarly {
   val globalSettings: Seq[Setting[_]] = Seq(
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
     releaseEarlyEnableLocalReleases := Defaults.releaseEarlyEnableLocalReleases.value,
+    releaseEarlyEnableInstantReleases := Defaults.releaseEarlyEnableInstantReleases.value,
     Keys.credentials := Defaults.releaseEarlySonatypeCredentials.value,
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
@@ -189,6 +194,8 @@ object ReleaseEarly {
     val releaseEarlyEnableLocalReleases: Def.Initialize[Boolean] =
       Def.setting(false)
 
+    val releaseEarlyEnableInstantReleases: Def.Initialize[Boolean] = Def.setting(true)
+
     val releaseEarlyWith: Def.Initialize[UnderlyingPublisher] =
       Def.setting(BintrayPublisher)
 
@@ -274,12 +281,14 @@ object ReleaseEarly {
 
     val releaseEarly: Def.Initialize[Task[Unit]] = Def.taskDyn {
       val logger = Keys.streams.value.log
+      val projectName = Keys.name.value
       if (!ThisPluginKeys.releaseEarlyInsideCI.value &&
           !ThisPluginKeys.releaseEarlyEnableLocalReleases.value) {
         Def.task(sys.error(Feedback.OnlyCI))
       } else if (noArtifactToPublish.value) {
-        val msg = Feedback.skipRelease(Keys.name.value)
-        Def.task(logger.info(msg))
+        Def.task(logger.info(Feedback.skipRelease(projectName)))
+      } else if (!ThisPluginKeys.releaseEarlyEnableInstantReleases.value && Keys.isSnapshot.value) {
+        Def.task(logger.info(Feedback.skipInstantRelease(projectName, Keys.version.value)))
       } else {
         logger.info(Feedback.logReleaseEarly(Keys.name.value))
         val steps = ThisPluginKeys.releaseEarlyProcess.value

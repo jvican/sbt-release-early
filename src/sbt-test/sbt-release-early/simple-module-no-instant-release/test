@@ -1,0 +1,8 @@
+$ exec git init .
+$ exec git remote add origin https://github.com/jvican/stoml
+$ exec git add test
+$ exec git commit -m "Creating a new commit hash"
+
+> show version
+# Should not release anything, otherwise publish throws exception
+> releaseEarly
