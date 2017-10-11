@@ -24,6 +24,7 @@ bintrayOrganization := None
 bintrayRepository := "releases"
 bintrayPackage := "root-example"
 publishTo := (publishTo in bintray).value
+releaseEarlyWith := BintrayPublisher
 
 // Disable publishing of docs and sources
 publishArtifact in (Compile, packageDoc) := false

@@ -4,6 +4,7 @@ lazy val publishSettings = Seq(
   bintrayRepository := "tools",
   bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt"),
   publishTo := (publishTo in bintray).value,
+  releaseEarlyWith := BintrayPublisher,
   publishArtifact in Test := false,
   // Disable publishing of docs and sources
   publishArtifact in (Compile, packageDoc) := false,
