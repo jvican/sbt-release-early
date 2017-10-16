@@ -33,10 +33,10 @@ They explain:
 
 ## Reviews
 
-|Tiny Rick|Mr. Meeseeks|
-|---------|---------|
-|![sbt-release-early](https://user-images.githubusercontent.com/2462974/31609150-4854208e-b273-11e7-8328-6fa5b95795f0.jpg)|![meeseekshq](https://user-images.githubusercontent.com/2462974/31608891-5cfd327e-b272-11e7-8f53-1099c459c2df.png)|
-|"Just use `sbt-release-early` to release and let's party with my grandkids!! What's the BFD?!"|"I'm Mr. Meeseeks, look at mee! 👋 Do you want to make a release? Use sbt-release-early! ✨✨✨💨💨💨"|
+|Tiny Rick|Mr. Meeseeks|Summer Smith|
+|---------|---------|-----------|
+|![sbt-release-early](https://user-images.githubusercontent.com/2462974/31609150-4854208e-b273-11e7-8328-6fa5b95795f0.jpg)|![meeseekshq](https://user-images.githubusercontent.com/2462974/31608891-5cfd327e-b272-11e7-8f53-1099c459c2df.png)|![summer_is_cool](https://user-images.githubusercontent.com/2462974/31628712-d8910e62-b2b1-11e7-8057-ffc70096000c.jpg)|
+|"Just use `sbt-release-early` to release and let's party with my grandkids!! What's the BFD?!"|"I'm Mr. Meeseeks, look at mee! 👋 Do you want to make a release? Use sbt-release-early! 💨✨ \*explodes\*"|"Meh, `sbt-release-early` is above average."|
 
 If you want to add a review, open a pull request!
 
