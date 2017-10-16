@@ -33,10 +33,10 @@ They explain:
 
 ## Reviews
 
-|Little Rick|Mr. Meeseeks|
+|Tiny Rick|Mr. Meeseeks|
 |---------|---------|
 |![sbt-release-early](https://user-images.githubusercontent.com/2462974/31609150-4854208e-b273-11e7-8328-6fa5b95795f0.jpg)|![meeseekshq](https://user-images.githubusercontent.com/2462974/31608891-5cfd327e-b272-11e7-8f53-1099c459c2df.png)|
-|"`sbt-release-early` FTW! Release and let's party."|"`sbt-release-early` is aweeesome"|
+|"Just use `sbt-release-early` to release and let's party with my grandkids!! What's the BFD?!"|"I'm Mr. Meeseeks, look at mee! 👋 Do you want to make a release? Use sbt-release-early! ✨✨✨💨💨💨"|
 
 If you want to add a review, open a pull request!
 
