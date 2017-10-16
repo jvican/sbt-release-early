@@ -1,13 +1,9 @@
 lazy val publishSettings = Seq(
-  publishMavenStyle := false,
-  bintrayOrganization := Some("scalaplatform"),
-  bintrayRepository := "tools",
-  bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt"),
-  publishTo := (publishTo in bintray).value,
-  publishArtifact in Test := false,
-  releaseEarlyEnableSyncToMaven := true,
-  releaseEarlyNoGpg := true,
+  pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
+  pgpSecretRing := file("/drone/.gnupg/secring.asc"),
   releaseEarlyWith := BintrayPublisher,
+  releaseEarlyNoGpg := true,
+  publishArtifact in Test := false,
   licenses := Seq(
     // Scala Center license... BSD 3-clause
     "BSD" -> url("http://opensource.org/licenses/BSD-3-Clause")
@@ -33,7 +29,8 @@ lazy val scriptedTest = Seq(
 )
 
 lazy val buildSettings = Seq(
-  organization := "ch.epfl.scala",
+  // Sonatype can only publish to this fake group id
+  organization := "org.bitbucket.jplantdev",
   resolvers += Resolver.jcenterRepo,
   resolvers += Resolver.bintrayRepo("scalaplatform", "tools"),
   updateOptions := updateOptions.value.withCachedResolution(true)

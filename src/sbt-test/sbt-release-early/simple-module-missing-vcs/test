@@ -3,6 +3,16 @@ $ exec git add .
 $ exec git commit -m "First commit"
 $ exec git tag -a v0.1.0 -m "v0.1.0"
 
-> show version
 # It should fail because the vcs information is missing
+
+$ copy-file changes/sonatype.sbt publisher.sbt
+> reload
+> show version
+> show releaseEarlyWith
+-> releaseEarly
+
+$ copy-file changes/bintray.sbt publisher.sbt
+> reload
+> show version
+> show releaseEarlyWith
 -> releaseEarly

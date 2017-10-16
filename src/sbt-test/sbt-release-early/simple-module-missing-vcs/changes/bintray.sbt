@@ -1,0 +1,1 @@
+releaseEarlyWith := BintrayPublisher

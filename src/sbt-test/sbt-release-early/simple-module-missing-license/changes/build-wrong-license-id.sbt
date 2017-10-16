@@ -24,7 +24,6 @@ pomExtra in Global := {
 bintrayOrganization := None
 bintrayRepository := "releases"
 bintrayPackage := "root-example"
-publishTo := (publishTo in bintray).value
 
 // Release early
 releaseEarlyEnableLocalReleases := true
