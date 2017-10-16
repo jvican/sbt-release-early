@@ -16,9 +16,7 @@ necessary steps to make releasing easy.
 
 ## Installation and latest version
 
-Check [the GitHub releases](https://github.com/scalacenter/sbt-release-early/releases) to find out what the last version is.
-
-For installation, [here's a quick link](https://github.com/scalacenter/sbt-release-early/wiki/Essential:-Using-the-plugin) to the pertinent doc page.
+For installation, [here's a quick link](https://github.com/scalacenter/sbt-release-early/wiki/Essential:-Installation) to the pertinent wiki page.
 
 ## Read the docs
 
