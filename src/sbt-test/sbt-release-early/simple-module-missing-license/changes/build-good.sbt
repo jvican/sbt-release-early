@@ -2,8 +2,8 @@ name := "root"
 organization := "me.vican.jorge"
 scalaVersion := "2.12.2"
 
-pgpPublicRing := file("/drone/.gnupg/pubring.asc")
-pgpSecretRing := file("/drone/.gnupg/secring.asc")
+pgpPublicRing in Global := file("/drone/.gnupg/pubring.asc")
+pgpSecretRing in Global := file("/drone/.gnupg/secring.asc")
 
 homepage := Some(url("https://github.com/jvican/root-example"))
 // The id of this license is incorrect
