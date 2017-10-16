@@ -25,5 +25,7 @@ bintrayRepository := "releases"
 bintrayPackage := "root-example"
 publishTo := (publishTo in bintray).value
 
-// Release early
+// Release early -- Use sonatype (default) instead of bintray
+// We want to check that the license error happens with sonatype
 releaseEarlyEnableLocalReleases := true
+releaseEarlyWith := SonatypePublisher

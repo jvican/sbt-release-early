@@ -401,12 +401,8 @@ trait Helper {
     // Using Sonatype publisher
     if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
       logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-      val sonatypeCredentials = getSonatypeCredentials.orElse {
-        // Get extra credentials from optional environment variables
-        val extraCredentials = getExtraSonatypeCredentials
-        extraCredentials.foreach(persistExtraSonatypeCredentials)
-        extraCredentials
-      }
+      val sonatypeCredentials = getSonatypeCredentials.orElse(getExtraSonatypeCredentials)
+      sonatypeCredentials.foreach(persistExtraSonatypeCredentials)
 
       val missingSonatypeCredentials = {
         sonatypeCredentials.isEmpty &&
@@ -523,8 +519,10 @@ trait Helper {
     * infrastructure to support these extra environment variables.
     */
   protected def persistExtraSonatypeCredentials(credentials: (String, String)): Unit = {
-    sys.props += PropertyKeys._1 -> credentials._1
-    sys.props += PropertyKeys._2 -> credentials._2
+    if (!sys.props.contains(PropertyKeys._1) || !sys.props.contains(PropertyKeys._2)) {
+      sys.props += PropertyKeys._1 -> credentials._1
+      sys.props += PropertyKeys._2 -> credentials._2
+    }
   }
 
   /** Get Sonatype credentials from environment in the same way as sbt-bintray:

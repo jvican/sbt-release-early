@@ -28,3 +28,5 @@ publishTo := (publishTo in bintray).value
 
 // Release early
 releaseEarlyEnableLocalReleases := true
+// Use bintray publisher because checking the license ids only happens when using bintray
+releaseEarlyWith := BintrayPublisher
