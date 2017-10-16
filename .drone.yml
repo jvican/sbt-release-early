@@ -11,7 +11,7 @@ pipeline:
     restore: true
     ignore_branch: true
     when:
-      event: [ push, pull_request, tag, deployment ]
+      event: [ push, pull_request, deployment ]
     mount:
       - /drone/.ivy2
       - /drone/.coursier
@@ -52,7 +52,7 @@ pipeline:
     rebuild: true
     when:
       status: [ success, failure ]
-      event: [ push, pull_request, tag, deployment ]
+      event: [ push, pull_request, deployment ]
     mount:
       - /drone/.ivy2
       - /drone/.coursier
