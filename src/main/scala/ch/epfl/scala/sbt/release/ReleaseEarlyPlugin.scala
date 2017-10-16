@@ -242,11 +242,12 @@ object ReleaseEarly {
       // sbt-sonatype needs these task to run sequentially :(
       Def.task {
         val logger = Keys.streams.value.log
-        val projectName = Keys.name.value
-        logger.info(Feedback.logReleaseSonatype(projectName))
+        val projectId = Keys.thisProjectRef.value.project
+        logger.info(Feedback.logReleaseSonatype(projectId))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import Sonatype.{sonatypeRelease => _, sonatypeOpen => _}
-        val toRun = s";$projectName/publishSigned;sonatypeRelease"
+        // We don't use `sonatypeOpen` because `publishSigned` deduplicates the repository
+        val toRun = s";$projectId/publishSigned;sonatypeRelease"
         runCommandAndRemaining(toRun)(state)
         ()
       }
@@ -400,12 +401,8 @@ trait Helper {
     // Using Sonatype publisher
     if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
       logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-      val sonatypeCredentials = getSonatypeCredentials.orElse {
-        // Get extra credentials from optional environment variables
-        val extraCredentials = getExtraSonatypeCredentials
-        extraCredentials.foreach(persistExtraSonatypeCredentials)
-        extraCredentials
-      }
+      val sonatypeCredentials = getSonatypeCredentials.orElse(getExtraSonatypeCredentials)
+      sonatypeCredentials.foreach(persistExtraSonatypeCredentials)
 
       val missingSonatypeCredentials = {
         sonatypeCredentials.isEmpty &&
@@ -522,8 +519,10 @@ trait Helper {
     * infrastructure to support these extra environment variables.
     */
   protected def persistExtraSonatypeCredentials(credentials: (String, String)): Unit = {
-    sys.props += PropertyKeys._1 -> credentials._1
-    sys.props += PropertyKeys._2 -> credentials._2
+    if (!sys.props.contains(PropertyKeys._1) || !sys.props.contains(PropertyKeys._2)) {
+      sys.props += PropertyKeys._1 -> credentials._1
+      sys.props += PropertyKeys._2 -> credentials._2
+    }
   }
 
   /** Get Sonatype credentials from environment in the same way as sbt-bintray:

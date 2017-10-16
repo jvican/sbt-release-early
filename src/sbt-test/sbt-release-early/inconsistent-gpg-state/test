@@ -3,16 +3,14 @@ $ exec git add .
 $ exec git commit -m "First commit"
 $ exec git tag -a v0.1.0 -m "v0.1.0"
 
-# Both should fail because the developers information is missing
-
-$ copy-file changes/sonatype.sbt publisher.sbt
+$ copy-file changes/build-sonatype.sbt build.sbt
 > reload
 > show version
 > show releaseEarlyWith
--> releaseEarly
+-> releaseEarlyCheckRequirements
 
-$ copy-file changes/bintray.sbt publisher.sbt
+$ copy-file changes/build-bintray.sbt build.sbt
 > reload
 > show version
 > show releaseEarlyWith
--> releaseEarly
+-> releaseEarlyCheckRequirements
