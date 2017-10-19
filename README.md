@@ -33,10 +33,46 @@ They explain:
 
 ## Reviews
 
-| Tiny Rick | Mr. Meeseeks | Summer Smith |
-|:---------:|:------------:|:------------:|
-| <img src="https://user-images.githubusercontent.com/2462974/31609150-4854208e-b273-11e7-8328-6fa5b95795f0.jpg" style="max-height:200px"/> | <img src="https://user-images.githubusercontent.com/2462974/31608891-5cfd327e-b272-11e7-8f53-1099c459c2df.png" style="max-height:200px"/> | <img src="https://user-images.githubusercontent.com/2462974/31628712-d8910e62-b2b1-11e7-8057-ffc70096000c.jpg" style="max-height:200px"/> |
-| "Just use `sbt-release-early` to release and let's party with my grandkids!! What's the BFD?!" | "I'm Mr. Meeseeks, look at mee! 👋 Do you want to cut a release? Use sbt-release-early! 💨✨ \*explodes\*" | "Meh, `sbt-release-early` is above average." |
+<table>
+  <colgroup>
+    <col style="width: 33%"/>
+    <col style="width: 33%"/>
+    <col style="width: 33%"/>
+  </colgroup>
+  <tr>
+    <th>
+      Tiny Rick
+    </th>
+    <th>
+      Mr. Meeseeks
+    </th>
+    <th>
+      Summer Smith
+    </th>
+  </tr>
+  <tr style="text-align: center">
+    <td>
+      <img style="max-height: 250px" src="https://user-images.githubusercontent.com/2462974/31609150-4854208e-b273-11e7-8328-6fa5b95795f0.jpg"/>
+    </td>
+    <td>
+      <img style="max-height: 250px" src="https://user-images.githubusercontent.com/2462974/31608891-5cfd327e-b272-11e7-8f53-1099c459c2df.png"/>
+    </td>
+    <td>
+      <img style="max-height: 250px" src="https://user-images.githubusercontent.com/2462974/31628712-d8910e62-b2b1-11e7-8057-ffc70096000c.jpg"/>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      "Just use <i>sbt-release-early</i> to release and let's party with my grandkids!! What's the BFD?!"
+    </td>
+    <td>
+      "I'm Mr. Meeseeks, look at mee! 👋 Do you want to cut a release? Use <i>sbt-release-early</i>! 💨✨ *explodes*"
+    </td>
+    <td>
+      "Meh, <i>sbt-release-early</i> is above average."
+    </td>
+  </tr>
+</table>
 
 If you want to add a review, open a pull request!
 
