@@ -10,6 +10,7 @@ lazy val `sbt-release-early` = project
     addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0"),
     addSbtPlugin("com.dwijnand" % "sbt-dynver" % "2.0.0"),
     addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.0"),
+    addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3"),
     scriptedLaunchOpts := Seq(
       "-Dplugin.version=" + version.value,
       "-Xmx1g",
