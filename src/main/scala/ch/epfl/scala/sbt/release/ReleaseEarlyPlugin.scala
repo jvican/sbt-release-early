@@ -78,7 +78,8 @@ object ReleaseEarly {
   import sbt.{Keys, Tags, SettingKey, settingKey}
 
   import ReleaseEarlyPlugin.autoImport._
-  import xerial.sbt.Sonatype.{SonatypeCommand => Sonatype}
+  import xerial.sbt.Sonatype.{SonatypeCommand => SonatypeCommands}
+  import xerial.sbt.Sonatype.{autoImport => Sonatype}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
@@ -149,7 +150,11 @@ object ReleaseEarly {
       } else currentPassword
     }
 
+    private val sonatypeStagingId = sbt.librarymanagement
+      .MavenRepository("sonatype-staging-id", "https://oss.sonatype.org/service/local/staging")
+
     val releaseEarlyPublishTo: Def.Initialize[Task[Option[sbt.Resolver]]] = {
+      import sbt.librarymanagement.syntax.toRepositoryName
       Def.taskDyn {
         // It is not necessary to use a dynamic setting here.
         val logger = Keys.sLog.value
@@ -158,8 +163,14 @@ object ReleaseEarly {
           // Reference: https://github.com/xerial/sbt-sonatype#buildsbt
           val projectVersion = Keys.version.value
           if (isOldSnapshot(projectVersion))
-            logger.error(Feedback.UnrecognisedPublisher)
-          Some(sbt.Opts.resolver.sonatypeStaging)
+            logger.error(Feedback.unsupportedSnapshot(projectVersion))
+
+          Sonatype.sonatypeStagingRepositoryProfile.?.value match {
+            case Some(profile) =>
+              val root = sonatypeStagingId + s"/deployByRepositoryId/${profile.repositoryId}"
+              Some(sonatypeStagingId.name at root)
+            case None => Some(sbt.Opts.resolver.sonatypeStaging)
+          }
         } else (Keys.publishTo in Bintray.bintray)
       }
     }
@@ -245,7 +256,7 @@ object ReleaseEarly {
         val projectId = Keys.thisProjectRef.value.project
         logger.info(Feedback.logReleaseSonatype(projectId))
         // Trick to make sure that 'sonatypeRelease' does not change the name
-        import Sonatype.{sonatypeRelease => _, sonatypeOpen => _}
+        import SonatypeCommands.{sonatypeRelease => _, sonatypeOpen => _}
         // We don't use `sonatypeOpen` because `publishSigned` deduplicates the repository
         val toRun = s";$projectId/publishSigned;sonatypeRelease"
         runCommandAndRemaining(toRun)(state)
@@ -416,22 +427,24 @@ trait Helper {
         (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
       )
 
-    // Using Bintray publisher
-    } else Def.task {
-      val missingBintrayCredentials = {
-        catching(classOf[NoSuchElementException])
-          .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
-          .isEmpty
+      // Using Bintray publisher
+    } else {
+      Def.task {
+        val missingBintrayCredentials = {
+          catching(classOf[NoSuchElementException])
+            .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
+            .isEmpty
+        }
+
+        val bintrayInconsistentState =
+          ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
+            ThisPluginKeys.releaseEarlyNoGpg.value
+
+        check(
+          (missingBintrayCredentials, Feedback.missingBintrayCredentials),
+          (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState)
+        )
       }
-
-      val bintrayInconsistentState =
-        ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
-        ThisPluginKeys.releaseEarlyNoGpg.value
-
-      check(
-        (missingBintrayCredentials, Feedback.missingBintrayCredentials),
-        (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState)
-      )
     }
   }
 
