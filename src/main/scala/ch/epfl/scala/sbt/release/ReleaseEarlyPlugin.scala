@@ -101,7 +101,8 @@ object ReleaseEarly {
     releaseEarlyWith := Defaults.releaseEarlyWith.value,
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyNoGpg := Defaults.releaseEarlyNoGpg.value,
-    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value
+    releaseEarlyEnableSyncToMaven := Defaults.releaseEarlyEnableSyncToMaven.value,
+    releaseEarlyIgnoreLocalRepository := Defaults.releaseEarlyIgnoreLocalRepository.value,
   )
 
   val buildSettings: Seq[Setting[_]] = Seq(
@@ -129,7 +130,6 @@ object ReleaseEarly {
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
     releaseEarlyClose := Defaults.releaseEarlyClose.value,
     releaseEarlyProcess := Defaults.releaseEarlyProcess.value,
-    releaseEarlyIgnoreLocalRepository := Defaults.releaseEarlyIgnoreLocalRepository.value,
     PrivateKeys.releaseEarlyIsSonatype := Defaults.releaseEarlyIsSonatype.value
   ) ++ Defaults.saneDefaults
 
