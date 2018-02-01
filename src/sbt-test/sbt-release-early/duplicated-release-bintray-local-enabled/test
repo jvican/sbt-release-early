@@ -1,0 +1,12 @@
+$ exec git init
+$ exec git add .
+$ exec git commit -m "First commit"
+$ exec git tag -a v0.1.0 -m "v0.1.0"
+
+> randomizeVersion
+> reload
+> p1/publishLocal
+> p2/publishLocal
+> show releaseEarlyIgnoreLocalRepository
+> show resolvers
+-> releaseEarly

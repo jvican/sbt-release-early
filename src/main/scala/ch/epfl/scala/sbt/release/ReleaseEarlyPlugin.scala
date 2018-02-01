@@ -53,6 +53,8 @@ object ReleaseEarlyKeys {
       settingKey("Don't use `publishSigned` to `publish` stable releases.")
     val releaseEarlyEnableSyncToMaven: SettingKey[Boolean] =
       settingKey("Enable synchronization to Maven Central for git tags.")
+    val releaseEarlyIgnoreLocalRepository: SettingKey[Boolean] =
+      settingKey("Ignore ivy local repository when sbt-release-early looks for released artifacts.")
   }
 
   trait ReleaseEarlyTasks {
@@ -127,6 +129,7 @@ object ReleaseEarly {
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
     releaseEarlyClose := Defaults.releaseEarlyClose.value,
     releaseEarlyProcess := Defaults.releaseEarlyProcess.value,
+    releaseEarlyIgnoreLocalRepository := Defaults.releaseEarlyIgnoreLocalRepository.value,
     PrivateKeys.releaseEarlyIsSonatype := Defaults.releaseEarlyIsSonatype.value
   ) ++ Defaults.saneDefaults
 
@@ -292,6 +295,10 @@ object ReleaseEarly {
       )
     }
 
+    import sbt.librarymanagement.Resolver
+    private final val LocalResolvers =
+      List(Resolver.defaultLocal, Resolver.mavenLocal, Resolver.publishMavenLocal)
+
     val releaseEarly: Def.Initialize[Task[Unit]] = Def.taskDyn {
       val logger = Keys.streams.value.log
       val projectName = Keys.name.value
@@ -313,11 +320,17 @@ object ReleaseEarly {
           val scalaModule = Keys.scalaModuleInfo.value
 
           // If it's another thing, just fail! We must have an inline ivy config here.
-          val inlineConfig = Keys.ivyConfiguration.value.asInstanceOf[InlineIvyConfiguration]
+          val ivyConfig0 = Keys.ivyConfiguration.value.asInstanceOf[InlineIvyConfiguration]
 
           // We can do this because we resolve intransitively and nobody but this task publishes
-          val fasterIvyConfig = inlineConfig.withChecksums(Vector()).withLock(None)
-          val resolution = IvyDependencyResolution(fasterIvyConfig)
+          val ivyConfig1 = ivyConfig0.withChecksums(Vector()).withLock(None)
+          val ignoreLocalRepo = ThisPluginKeys.releaseEarlyIgnoreLocalRepository.value
+          val ivyConfig = if (ignoreLocalRepo) {
+            val remoteResolvers = ivyConfig0.resolvers.filterNot(r => LocalResolvers.contains(r))
+            ivyConfig1.withResolvers(remoteResolvers)
+          } else ivyConfig1
+
+          val resolution = IvyDependencyResolution(ivyConfig)
           sbt.IO.withTemporaryDirectory { tmpRetrieveDir =>
             logger.info(Feedback.logResolvingModule(moduleID.toString))
             val result = resolution.retrieve(moduleID, scalaModule, tmpRetrieveDir, NoLogger)
@@ -333,6 +346,8 @@ object ReleaseEarly {
         }
       }
     }
+
+    val releaseEarlyIgnoreLocalRepository: Def.Initialize[Boolean] = Def.setting(true)
 
     /** Validate POM files for synchronization with Maven Central.
       *
