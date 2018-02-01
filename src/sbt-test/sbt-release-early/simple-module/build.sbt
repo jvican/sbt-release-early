@@ -1,4 +1,4 @@
-name := "root"
+name := "simple-module"
 organization := "me.vican.jorge"
 scalaVersion := "2.12.2"
 
