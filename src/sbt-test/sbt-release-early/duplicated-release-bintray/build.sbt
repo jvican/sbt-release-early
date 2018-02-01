@@ -20,7 +20,8 @@ inThisBuild(List(
   // Bintray settings -- This one has to be redefined in `ThisBuild`
   bintrayOrganization := Some("scalaplatform"),
   // Use version that has already been published
-  version in ThisBuild := "0.2.0+1-b316b8d9"
+  version in ThisBuild := "0.2.0+1-b316b8d9",
+  dynver in ThisBuild := "0.2.0+1-b316b8d9"
 ))
 
 lazy val publishSettings = Seq(

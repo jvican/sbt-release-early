@@ -17,7 +17,8 @@ inScope(Scope.GlobalScope)(List(
 ))
 
 inThisBuild(List(
-  version in ThisBuild := "0.2.0+1-30919445"
+  version in ThisBuild := "0.2.0+1-30919445",
+  dynver in ThisBuild := "0.2.0+1-30919445"
 ))
 
 lazy val publishSettings = Seq(
