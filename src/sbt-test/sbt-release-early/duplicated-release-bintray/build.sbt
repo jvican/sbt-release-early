@@ -20,8 +20,8 @@ inThisBuild(List(
   // Bintray settings -- This one has to be redefined in `ThisBuild`
   bintrayOrganization := Some("scalaplatform"),
   // Use version that has already been published
-  version in ThisBuild := "0.2.0+1-b316b8d9",
-  dynver in ThisBuild := "0.2.0+1-b316b8d9"
+  version in ThisBuild := "0.2.0+1-9c88eba1",
+  dynver in ThisBuild := "0.2.0+1-9c88eba1"
 ))
 
 lazy val publishSettings = Seq(
@@ -31,15 +31,20 @@ lazy val publishSettings = Seq(
   publishArtifact in (Compile, packageDoc) := false,
   publishArtifact in (Compile, packageSrc) := false,
   resolvers += Resolver.jcenterRepo,
-  resolvers += Resolver.bintrayRepo("scalaplatform", "tools"),
+  resolvers += Resolver.bintrayIvyRepo("scalaplatform", "tools"),
   updateOptions := updateOptions.value.withCachedResolution(true),
   // Bintray settings -- These ones have to be redefined in the projects
   bintrayRepository := "tools",
   bintrayPackageLabels := Seq("scala", "scalacenter", "plugin", "sbt")
 )
 
-// This is just necessary to test with scripted, don't copy
-lazy val scriptedTest = Seq(releaseEarlyEnableLocalReleases := true)
+val dontCallMe = taskKey[Unit]("Don't call me, I'll fail.")
+lazy val scriptedTest = Seq(
+  // This is just necessary to test with scripted, don't copy
+  releaseEarlyEnableLocalReleases := true,
+  dontCallMe := sys.error("Release early process shoult not be invoked for repeated release."),
+  releaseEarlyProcess := List(dontCallMe)
+)
 
 lazy val noPublish = Seq(
   publish := {},
@@ -64,16 +69,3 @@ lazy val p2 = project
   .settings(scriptedTest)
   .settings(publishSettings)
   .settings(scalaVersion := "2.11.11")
-
-val checkReleaseIsUnpublished = taskKey[Unit]("Check last releaseEarly did not publish")
-checkReleaseIsUnpublished in ThisBuild := {
-  import ch.epfl.scala.sbt.release.Feedback
-  def check(streams: TaskStreams, name: String, projectID: String): Unit = {
-    val logs = IO.read(streams.cacheDirectory./("out"))
-    assert(logs.contains(Feedback.logResolvingModule(name)))
-    assert(logs.contains(Feedback.logAlreadyPublishedModule(name, projectID)))
-  }
-
-  check((streams in releaseEarly in p1).value, (name in p1).value, (projectID in p1).value.toString)
-  check((streams in releaseEarly in p2).value, (name in p2).value, (projectID in p2).value.toString)
-}

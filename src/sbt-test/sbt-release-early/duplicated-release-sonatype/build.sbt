@@ -28,8 +28,13 @@ lazy val publishSettings = Seq(
   updateOptions := updateOptions.value.withCachedResolution(true)
 )
 
-// This is just necessary to test with scripted, don't copy
-lazy val scriptedTest = Seq(releaseEarlyEnableLocalReleases := true)
+val dontCallMe = taskKey[Unit]("Don't call me, I'll fail.")
+lazy val scriptedTest = Seq(
+  // This is just necessary to test with scripted, don't copy
+  releaseEarlyEnableLocalReleases := true,
+  dontCallMe := sys.error("Release early process shoult not be invoked for repeated release."),
+  releaseEarlyProcess := List(dontCallMe)
+)
 
 lazy val noPublish = Seq(
   publish := {},
@@ -54,16 +59,3 @@ lazy val p2 = project
   .settings(scriptedTest)
   .settings(publishSettings)
   .settings(scalaVersion := "2.11.11")
-
-val checkReleaseIsUnpublished = taskKey[Unit]("Check last releaseEarly did not publish")
-checkReleaseIsUnpublished in ThisBuild := {
-  import ch.epfl.scala.sbt.release.Feedback
-  def check(streams: TaskStreams, name: String, projectID: String): Unit = {
-    val logs = IO.read(streams.cacheDirectory./("out"))
-    assert(logs.contains(Feedback.logResolvingModule(name)))
-    assert(logs.contains(Feedback.logAlreadyPublishedModule(name, projectID)))
-  }
-
-  check((streams in releaseEarly in p1).value, (name in p1).value, (projectID in p1).value.toString)
-  check((streams in releaseEarly in p2).value, (name in p2).value, (projectID in p2).value.toString)
-}
