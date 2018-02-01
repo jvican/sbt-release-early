@@ -199,7 +199,7 @@ object ReleaseEarly {
               logger.debug(Feedback.LogAddSonatypeCredentials)
               val newCredentials =
                 Credentials(SonatypeRealm, SonatypeHost, user, passwd)
-              currentCredentials :+ newCredentials
+              newCredentials +: currentCredentials
             case _ => currentCredentials
           }
         } else currentCredentials
