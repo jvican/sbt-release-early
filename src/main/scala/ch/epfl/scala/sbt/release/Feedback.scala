@@ -34,6 +34,10 @@ object Feedback {
     s"${prefix}Releasing $projectName to Sonatype."
   def logReleaseBintray(projectName: String) =
     s"${prefix}Releasing $projectName to Bintray."
+  def logResolvingModule(projectID: String) =
+    s"${prefix}Checking that ${projectID} has not already been published."
+  def logAlreadyPublishedModule(projectName: String, projectID: String) =
+    s"${prefix}Skip release of ${projectName} because artifact matching project id '$projectID' already exists."
 
   import ReleaseEarlyPlugin.autoImport.{releaseEarlyNoGpg, releaseEarlyEnableSyncToMaven}
   val BintrayInconsistentGpgState =
