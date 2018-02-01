@@ -1,5 +1,6 @@
 package ch.epfl.scala.sbt.release
 
+import sbt.librarymanagement.ivy.{InlineIvyConfiguration, IvyDependencyResolution}
 import sbt.{AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task}
 
 object ReleaseEarlyPlugin extends AutoPlugin {
@@ -302,10 +303,34 @@ object ReleaseEarly {
       } else if (!ThisPluginKeys.releaseEarlyEnableInstantReleases.value && Keys.isSnapshot.value) {
         Def.task(logger.info(Feedback.skipInstantRelease(projectName, Keys.version.value)))
       } else {
-        logger.info(Feedback.logReleaseEarly(Keys.name.value))
-        val steps = ThisPluginKeys.releaseEarlyProcess.value
-        // Return task with unit value at the end
-        StableDef.sequential(steps.map(_.toTask), Def.task(()))
+        Def.taskDyn {
+          import sbt.util.Logger.{Null => NoLogger}
+          val logger = Keys.streams.value.log
+
+          // Important to make it transitive, we just want to check if a jar exists
+          val name = Keys.name.value
+          val moduleID = Keys.projectID.value.intransitive()
+          val scalaModule = Keys.scalaModuleInfo.value
+
+          // If it's another thing, just fail! We must have an inline ivy config here.
+          val inlineConfig = Keys.ivyConfiguration.value.asInstanceOf[InlineIvyConfiguration]
+
+          // We can do this because we resolve intransitively and nobody but this task publishes
+          val fasterIvyConfig = inlineConfig.withChecksums(Vector()).withLock(None)
+          val resolution = IvyDependencyResolution(fasterIvyConfig)
+          sbt.IO.withTemporaryDirectory { tmpRetrieveDir =>
+            logger.info(Feedback.logResolvingModule(moduleID.toString))
+            val result = resolution.retrieve(moduleID, scalaModule, tmpRetrieveDir, NoLogger)
+            result match {
+              case Left(_) => // Trigger release for unexisting module, yay!
+                logger.info(Feedback.logReleaseEarly(name))
+                val steps = ThisPluginKeys.releaseEarlyProcess.value
+                StableDef.sequential(steps.map(_.toTask), Def.task(()))
+              case Right(resolved) => // Skip release, module has already been published!
+                Def.task(logger.warn(Feedback.logAlreadyPublishedModule(name, moduleID.toString)))
+            }
+          }
+        }
       }
     }
 
