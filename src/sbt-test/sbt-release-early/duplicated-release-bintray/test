@@ -3,6 +3,5 @@ $ exec git add .
 $ exec git commit -m "First commit"
 $ exec git tag -a v0.1.0 -m "v0.1.0"
 
-> set version in ThisBuild := "0.2.0+1-b316b8d9"
 > releaseEarly
 > checkReleaseIsUnpublished

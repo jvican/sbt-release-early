@@ -16,6 +16,10 @@ inScope(Scope.GlobalScope)(List(
   releaseEarlyWith := SonatypePublisher // this is the default
 ))
 
+inThisBuild(List(
+  version in ThisBuild := "0.2.0+1-30919445"
+))
+
 lazy val publishSettings = Seq(
   publishArtifact in Test := false,
   resolvers += Resolver.jcenterRepo,
