@@ -257,7 +257,7 @@ object ReleaseEarly {
       // sbt-sonatype needs these task to run sequentially :(
       Def.task {
         val logger = Keys.streams.value.log
-        val projectId = Keys.thisProjectRef.value.project
+        val projectId = sbt.Reference.display(Keys.thisProjectRef.value)
         logger.info(Feedback.logReleaseSonatype(projectId))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import SonatypeCommands.{sonatypeRelease => _, sonatypeOpen => _}
