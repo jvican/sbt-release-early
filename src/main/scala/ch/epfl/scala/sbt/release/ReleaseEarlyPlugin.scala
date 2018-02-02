@@ -88,6 +88,7 @@ object ReleaseEarly {
   import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
   final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
+  final val ExclusiveReleaseTag = Tags.exclusive(SingleThreadedRelease)
 
   val globalSettings: Seq[Setting[_]] = Seq(
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
@@ -97,7 +98,7 @@ object ReleaseEarly {
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
     Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
-    Keys.concurrentRestrictions += Tags.exclusive(SingleThreadedRelease),
+    Keys.concurrentRestrictions += ExclusiveReleaseTag,
     releaseEarlyWith := Defaults.releaseEarlyWith.value,
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyNoGpg := Defaults.releaseEarlyNoGpg.value,
