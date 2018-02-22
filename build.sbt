@@ -5,7 +5,7 @@ lazy val `sbt-release-early` = project
     pgpPublicRing := file("/drone/.gnupg/pubring.asc"),
     pgpSecretRing := file("/drone/.gnupg/secring.asc"),
     scalaVersion := "2.12.4",
-    sbtVersion in Global := "1.0.4",
+    sbtVersion in Global := "1.1.1",
     addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.3"),
     addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0"),
     addSbtPlugin("com.dwijnand" % "sbt-dynver" % "2.0.0"),
