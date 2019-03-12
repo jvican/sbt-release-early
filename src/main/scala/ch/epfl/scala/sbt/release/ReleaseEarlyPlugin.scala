@@ -257,13 +257,14 @@ object ReleaseEarly {
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
       // sbt-sonatype needs these task to run sequentially :(
       Def.task {
+        Pgp.PgpKeys.publishSigned.value
         val logger = Keys.streams.value.log
         val projectId = sbt.Reference.display(Keys.thisProjectRef.value)
         logger.info(Feedback.logReleaseSonatype(projectId))
         // Trick to make sure that 'sonatypeRelease' does not change the name
         import SonatypeCommands.{sonatypeRelease => _, sonatypeOpen => _}
         // We don't use `sonatypeOpen` because `publishSigned` deduplicates the repository
-        val toRun = s";$projectId/publishSigned;sonatypeRelease"
+        val toRun = "sonatypeRelease"
         runCommandAndRemaining(toRun)(state)
         ()
       }
