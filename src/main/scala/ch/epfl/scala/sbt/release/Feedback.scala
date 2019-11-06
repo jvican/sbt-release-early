@@ -1,7 +1,7 @@
 package ch.epfl.scala.sbt.release
 
 import bintray.BintrayPlugin
-import com.typesafe.sbt.pgp.PgpKeys
+  import com.jsuereth.sbtpgp.PgpKeys
 import sbt.Keys
 
 object Feedback {

@@ -25,7 +25,7 @@ object BuildDefaults {
   def GitHubDev(handle: String, fullName: String, email: String) =
     Developer(handle, fullName, email, url(s"https://github.com/$handle"))
 
-  import com.typesafe.sbt.SbtPgp.{autoImport => PgpKeys}
+  import com.jsuereth.sbtpgp.SbtPgp.{autoImport => Pgp}
   import ch.epfl.scala.sbt.release.ReleaseEarlyPlugin.{autoImport => ReleaseEarlyKeys}
 
   private final val ThisRepo = GitHub("scalacenter", "sbt-release-early")
@@ -47,7 +47,6 @@ object BuildDefaults {
   )
 
   final val globalSettings: Seq[Def.Setting[_]] = Seq(
-    Keys.triggeredMessage in ThisBuild := Watched.clearWhenTriggered,
     Keys.watchSources += (Keys.baseDirectory in ThisBuild).value / "resources",
     Keys.testOptions in Test += sbt.Tests.Argument("-oD")
   ) ++ globalPublishSettings

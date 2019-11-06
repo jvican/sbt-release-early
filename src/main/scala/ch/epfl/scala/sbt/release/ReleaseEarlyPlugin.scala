@@ -6,9 +6,10 @@ import sbt.{AutoPlugin, Def, PluginTrigger, Plugins, Setting, Task}
 object ReleaseEarlyPlugin extends AutoPlugin {
   val autoImport = AutoImported
 
+import com.jsuereth.sbtpgp.SbtPgp
   override def trigger: PluginTrigger = allRequirements
   override def requires: Plugins =
-    sbtdynver.DynVerPlugin && bintray.BintrayPlugin && xerial.sbt.Sonatype && com.typesafe.sbt.SbtPgp
+    sbtdynver.DynVerPlugin && bintray.BintrayPlugin && xerial.sbt.Sonatype && SbtPgp
 
   override def globalSettings: Seq[Def.Setting[_]] =
     ReleaseEarly.globalSettings
@@ -81,11 +82,11 @@ object ReleaseEarly {
   import sbt.{Keys, Tags, SettingKey, settingKey}
 
   import ReleaseEarlyPlugin.autoImport._
+  import com.jsuereth.sbtpgp.SbtPgp.{autoImport => Pgp}
   import xerial.sbt.Sonatype.{SonatypeCommand => SonatypeCommands}
   import xerial.sbt.Sonatype.{autoImport => Sonatype}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
-  import com.typesafe.sbt.SbtPgp.{autoImport => Pgp}
 
   final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
   final val ExclusiveReleaseTag = Tags.exclusive(SingleThreadedRelease)
