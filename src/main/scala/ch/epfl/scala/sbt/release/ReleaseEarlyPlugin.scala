@@ -79,17 +79,16 @@ object ReleaseEarlyKeys {
 }
 
 object ReleaseEarly {
-  import sbt.{Keys, Tags, SettingKey, settingKey}
+  import sbt.{Keys, SettingKey, settingKey}
 
   import ReleaseEarlyPlugin.autoImport._
   import com.jsuereth.sbtpgp.SbtPgp.{autoImport => Pgp}
-  import xerial.sbt.Sonatype.{SonatypeCommand => SonatypeCommands}
   import xerial.sbt.Sonatype.{autoImport => Sonatype}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
 
-  final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
-  final val ExclusiveReleaseTag = Tags.exclusive(SingleThreadedRelease)
+  //final val SingleThreadedRelease = Tags.Tag("single-threaded-release")
+  //final val ExclusiveReleaseTag = Tags.exclusive(SingleThreadedRelease)
 
   val globalSettings: Seq[Setting[_]] = Seq(
     releaseEarlyInsideCI := Defaults.releaseEarlyInsideCI.value,
@@ -99,7 +98,7 @@ object ReleaseEarly {
     // This is not working for now, see https://github.com/sbt/sbt-pgp/issues/111
     // When it's fixed, remove the scoped key in `buildSettings` and this will work
     Pgp.pgpPassphrase := Defaults.pgpPassphrase.value,
-    Keys.concurrentRestrictions += ExclusiveReleaseTag,
+    //Keys.concurrentRestrictions += ExclusiveReleaseTag,
     releaseEarlyWith := Defaults.releaseEarlyWith.value,
     releaseEarlyBypassSnapshotCheck := Defaults.releaseEarlyBypassSnapshotChecks.value,
     releaseEarlyNoGpg := Defaults.releaseEarlyNoGpg.value,
@@ -156,11 +155,7 @@ object ReleaseEarly {
       } else currentPassword
     }
 
-    private val sonatypeStagingId = sbt.librarymanagement
-      .MavenRepository("sonatype-staging-id", "https://oss.sonatype.org/service/local/staging")
-
     val releaseEarlyPublishTo: Def.Initialize[Task[Option[sbt.Resolver]]] = {
-      import sbt.librarymanagement.syntax.toRepositoryName
       Def.taskDyn {
         // It is not necessary to use a dynamic setting here.
         val logger = Keys.sLog.value
@@ -171,12 +166,7 @@ object ReleaseEarly {
           if (isOldSnapshot(projectVersion))
             logger.error(Feedback.unsupportedSnapshot(projectVersion))
 
-          Sonatype.sonatypeStagingRepositoryProfile.?.value match {
-            case Some(profile) =>
-              val root = sonatypeStagingId + s"/deployByRepositoryId/${profile.repositoryId}"
-              Some(sonatypeStagingId.name at root)
-            case None => Some(sbt.Opts.resolver.sonatypeStaging)
-          }
+          Sonatype.sonatypePublishToBundle.value
         } else (Keys.publishTo in Bintray.bintray)
       }
     }
@@ -245,29 +235,10 @@ object ReleaseEarly {
     }
 
     val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      // If sonatype, always use `publishSigned` and ignore `publish`
-      if (PrivateKeys.releaseEarlyIsSonatype.value)
-        sonatypeRelease(Keys.state.value).tag(SingleThreadedRelease)
-      // If it's not sonatype, it's bintray... use signed for stable releases
-      else if (!Keys.isSnapshot.value && !ThisPluginKeys.releaseEarlyNoGpg.value)
+      if (!Keys.isSnapshot.value && !ThisPluginKeys.releaseEarlyNoGpg.value)
         Pgp.PgpKeys.publishSigned
       // Else, use the normal hijacked bintray publish task
       else Keys.publish
-    }
-
-    private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
-      // sbt-sonatype needs these task to run sequentially :(
-      Def.task {
-        val logger = Keys.streams.value.log
-        val projectId = sbt.Reference.display(Keys.thisProjectRef.value)
-        logger.info(Feedback.logReleaseSonatype(projectId))
-        // Trick to make sure that 'sonatypeRelease' does not change the name
-        import SonatypeCommands.{sonatypeRelease => _, sonatypeOpen => _}
-        // We don't use `sonatypeOpen` because `publishSigned` deduplicates the repository
-        val toRun = s";$projectId/publishSigned;sonatypeRelease"
-        runCommandAndRemaining(toRun)(state)
-        ()
-      }
     }
 
     /* For now, this task only execute `bintrayRelease`, `sonatypeRelease`
