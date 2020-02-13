@@ -1,3 +1,4 @@
+useGpg in Global := true
 lazy val `sbt-release-early` = project
   .in(file("."))
   .settings(
