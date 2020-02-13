@@ -24,11 +24,23 @@ object AutoImported
 
 object ReleaseEarlyKeys {
   import sbt.{taskKey, settingKey, TaskKey, SettingKey, Global}
+  trait UnderlyingPublisher {
+    // Set if this publisher requires an extra task for synchronization with maven central
+    val explicitMavenCentralSynchronizationTask: Option[TaskKey[Unit]] = None
+    // Set if this publisher requires an explicit step to validate licenses
+    val explicitLicenseCheck: Option[TaskKey[Unit]] = None
+  }
+  case object BintrayPublisher extends UnderlyingPublisher {
+    override val explicitMavenCentralSynchronizationTask =
+      Some(bintray.BintrayKeys.bintraySyncMavenCentral)
+    override val explicitLicenseCheck =
+      Some(bintray.BintrayKeys.bintrayEnsureLicenses)
+  }
+  case object SonatypePublisher extends UnderlyingPublisher 
 
   trait ReleaseEarlySettings {
-    trait UnderlyingPublisher
-    case object BintrayPublisher extends UnderlyingPublisher
-    case object SonatypePublisher extends UnderlyingPublisher
+    val SonatypePublisher: ReleaseEarlyKeys.SonatypePublisher.type = ReleaseEarlyKeys.SonatypePublisher
+    val BintrayPublisher: ReleaseEarlyKeys.BintrayPublisher.type = ReleaseEarlyKeys.BintrayPublisher
 
     // Note that we enforce that these settings will always be scoped globally
     private val localReleaseEarlyEnableLocalReleases: SettingKey[Boolean] =
@@ -78,7 +90,7 @@ object ReleaseEarlyKeys {
 }
 
 object ReleaseEarly {
-  import sbt.{Keys, Tags, SettingKey, settingKey}
+  import sbt.{Keys, Tags}
 
   import ReleaseEarlyPlugin.autoImport._
   import xerial.sbt.Sonatype.{SonatypeCommand => SonatypeCommands}
@@ -111,14 +123,6 @@ object ReleaseEarly {
     Pgp.pgpPassphrase := Defaults.pgpPassphrase.value
   )
 
-  object PrivateKeys {
-    // Note: code assumes that if it's not sonatype, it's Bintray.
-    private val releaseEarlyIsSonatypeInternal: SettingKey[Boolean] =
-      settingKey("Internal key that tells whether Sonatype is enabled.")
-    val releaseEarlyIsSonatype: SettingKey[Boolean] =
-      releaseEarlyIsSonatypeInternal in releaseEarly
-  }
-
   // TODO(jvican): Rethink the proper scopes of all these keys.
   val projectSettings: Seq[Setting[_]] = Seq(
     Keys.isSnapshot := Defaults.isSnapshot.value,
@@ -130,12 +134,12 @@ object ReleaseEarly {
     releaseEarlyCheckSnapshotDependencies := Defaults.releaseEarlyCheckSnapshotDependencies.value,
     releaseEarlyPublish := Defaults.releaseEarlyPublish.value,
     releaseEarlyClose := Defaults.releaseEarlyClose.value,
-    releaseEarlyProcess := Defaults.releaseEarlyProcess.value,
-    PrivateKeys.releaseEarlyIsSonatype := Defaults.releaseEarlyIsSonatype.value
+    releaseEarlyProcess := Defaults.releaseEarlyProcess.value
   ) ++ Defaults.saneDefaults
 
   object Defaults extends Helper {
     import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
+    import ReleaseEarlyKeys.{UnderlyingPublisher, SonatypePublisher, BintrayPublisher}
 
     /* Sbt bug: `Def.sequential` here produces 'Illegal dynamic reference' when
      * used inside `Def.taskDyn`. This is reported upstream, unclear if it can be fixed. */
@@ -154,6 +158,10 @@ object ReleaseEarly {
         getPgpPassphraseFromEnvironment
       } else currentPassword
     }
+    
+    val releaseEarlyWith: Def.Initialize[UnderlyingPublisher] =
+      Def.setting(ReleaseEarlyKeys.SonatypePublisher)
+
 
     private val sonatypeStagingId = sbt.librarymanagement
       .MavenRepository("sonatype-staging-id", "https://oss.sonatype.org/service/local/staging")
@@ -163,20 +171,23 @@ object ReleaseEarly {
       Def.taskDyn {
         // It is not necessary to use a dynamic setting here.
         val logger = Keys.sLog.value
-        if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
-          // Sonatype requires instrumentation of publishTo to work.
-          // Reference: https://github.com/xerial/sbt-sonatype#buildsbt
-          val projectVersion = Keys.version.value
-          if (isOldSnapshot(projectVersion))
-            logger.error(Feedback.unsupportedSnapshot(projectVersion))
+        releaseEarlyWith.value match {
+          case SonatypePublisher => Def.task {
+            // Sonatype requires instrumentation of publishTo to work.
+            // Reference: https://github.com/xerial/sbt-sonatype#buildsbt
+            val projectVersion = Keys.version.value
+            if (isOldSnapshot(projectVersion))
+              logger.error(Feedback.unsupportedSnapshot(projectVersion))
 
-          Sonatype.sonatypeStagingRepositoryProfile.?.value match {
-            case Some(profile) =>
-              val root = sonatypeStagingId + s"/deployByRepositoryId/${profile.repositoryId}"
-              Some(sonatypeStagingId.name at root)
-            case None => Some(sbt.Opts.resolver.sonatypeStaging)
+            Sonatype.sonatypeStagingRepositoryProfile.?.value match {
+              case Some(profile) =>
+                val root = sonatypeStagingId + s"/deployByRepositoryId/${profile.repositoryId}"
+                Some(sonatypeStagingId.name at root)
+              case None => Some(sbt.Opts.resolver.sonatypeStaging)
+            }
           }
-        } else (Keys.publishTo in Bintray.bintray)
+          case BintrayPublisher => (Keys.publishTo in Bintray.bintray)
+        }
       }
     }
 
@@ -212,9 +223,6 @@ object ReleaseEarly {
 
     val releaseEarlyEnableInstantReleases: Def.Initialize[Boolean] = Def.setting(true)
 
-    val releaseEarlyWith: Def.Initialize[UnderlyingPublisher] =
-      Def.setting(SonatypePublisher)
-
     val releaseEarlyInsideCI: Def.Initialize[Boolean] =
       Def.setting(sys.env.get("CI").isDefined)
 
@@ -238,20 +246,17 @@ object ReleaseEarly {
       }
     }
 
-    val releaseEarlyIsSonatype: Def.Initialize[Boolean] = Def.setting {
-      val underlyingPublisher = ThisPluginKeys.releaseEarlyWith.value
-      underlyingPublisher == SonatypePublisher
-    }
-
     val releaseEarlyPublish: Def.Initialize[Task[Unit]] = Def.taskDyn {
-      // If sonatype, always use `publishSigned` and ignore `publish`
-      if (PrivateKeys.releaseEarlyIsSonatype.value)
-        sonatypeRelease(Keys.state.value).tag(SingleThreadedRelease)
-      // If it's not sonatype, it's bintray... use signed for stable releases
-      else if (!Keys.isSnapshot.value && !ThisPluginKeys.releaseEarlyNoGpg.value)
-        Pgp.PgpKeys.publishSigned
-      // Else, use the normal hijacked bintray publish task
-      else Keys.publish
+      releaseEarlyWith.value match {
+        case SonatypePublisher =>
+          // If sonatype, always use `publishSigned` and ignore `publish`
+          sonatypeRelease(Keys.state.value).tag(SingleThreadedRelease)
+        case BintrayPublisher =>
+          // Use signed for stable releases
+          if (!Keys.isSnapshot.value && !ThisPluginKeys.releaseEarlyNoGpg.value) Pgp.PgpKeys.publishSigned
+          // Else, use the normal hijacked bintray publish task
+          else Keys.publish
+      }
     }
 
     private def sonatypeRelease(state: sbt.State): Def.Initialize[Task[Unit]] = {
@@ -276,10 +281,12 @@ object ReleaseEarly {
     val releaseEarlyClose: Def.Initialize[Task[Unit]] = Def.taskDyn {
       val logger = Keys.streams.value.log
       val projectName = Keys.name.value
-      if (!PrivateKeys.releaseEarlyIsSonatype.value) {
-        logger.info(Feedback.logReleaseBintray(projectName))
-        Bintray.bintrayRelease
-      } else Def.task(())
+      releaseEarlyWith.value match {
+        case SonatypePublisher => Def.task(())
+        case BintrayPublisher =>
+          logger.info(Feedback.logReleaseBintray(projectName))
+          Bintray.bintrayRelease
+      }
     }
 
     val releaseEarlyProcess: Def.Initialize[Seq[sbt.TaskKey[Unit]]] = {
@@ -378,7 +385,7 @@ object ReleaseEarly {
     }
 
     val releaseEarlyEnableSyncToMaven: Def.Initialize[Boolean] =
-      Def.setting(true)
+      Def.setting(releaseEarlyWith.value.explicitMavenCentralSynchronizationTask.isDefined)
 
     val releaseEarlyNoGpg: Def.Initialize[Boolean] = Def.setting(false)
 
@@ -386,9 +393,9 @@ object ReleaseEarly {
       Def.taskDyn {
         val logger = Keys.streams.value.log
         val projectName = Keys.name.value
-        val bintrayIsEnabled = !PrivateKeys.releaseEarlyIsSonatype.value
+        val syncTask = releaseEarlyWith.value.explicitMavenCentralSynchronizationTask
         val mustSyncToMaven: Boolean = (
-          bintrayIsEnabled &&
+          syncTask.isDefined &&
             ThisPluginKeys.releaseEarlyInsideCI.value &&
             ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
             !Keys.isSnapshot.value
@@ -396,9 +403,9 @@ object ReleaseEarly {
         if (mustSyncToMaven) {
           Def.task {
             logger.info(Feedback.logSyncToMaven(projectName))
-            bintray.BintrayKeys.bintraySyncMavenCentral.value
+            syncTask.get.value
           }
-        } else if (bintrayIsEnabled) {
+        } else if (syncTask.isDefined) {
           Def.task(logger.info(Feedback.skipSyncToMaven(projectName)))
         } else Def.task(())
       }
@@ -423,7 +430,8 @@ object ReleaseEarly {
 trait Helper {
   import sbt.Keys
   import sbt.State
-  import ReleaseEarly.PrivateKeys
+  import sbt.util.Logger
+  import ReleaseEarlyKeys.{SonatypePublisher, BintrayPublisher}
 
   def isOldSnapshot(version: String): Boolean =
     version.endsWith("-SNAPSHOT")
@@ -437,10 +445,57 @@ trait Helper {
     )
   }
 
-  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
+  private def checkSonatypeRequirements(
+    projectName: String,
+    logger: Logger, 
+    collectAndReportFeedback: ((Boolean, String)*) => Unit
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
+
+    logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
+    val sonatypeCredentials = getSonatypeCredentials.orElse(getExtraSonatypeCredentials)
+    sonatypeCredentials.foreach(persistExtraSonatypeCredentials)
+
+    val missingSonatypeCredentials = {
+      sonatypeCredentials.isEmpty &&
+      !Keys.isSnapshot.value &&
+      !Keys.state.value.interactive
+    }
+
+    val sonatypeInconsistentState = ThisPluginKeys.releaseEarlyNoGpg.value
+    collectAndReportFeedback(
+      (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
+      (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
+    )
+
+  }
+  
+  private def checkBintrayRequirements(
+    logger: Logger, 
+    collectAndReportFeedback: ((Boolean, String)*) => Unit
+  ): Def.Initialize[Task[Unit]] = Def.task {
     import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
     import scala.util.control.Exception.catching
+    
+    val missingBintrayCredentials = {
+        catching(classOf[NoSuchElementException])
+          .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
+          .isEmpty
+      }
 
+    val bintrayInconsistentState =
+      ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
+        ThisPluginKeys.releaseEarlyNoGpg.value
+
+    collectAndReportFeedback(
+      (missingBintrayCredentials, Feedback.missingBintrayCredentials),
+      (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState)
+    )
+  }
+
+
+  def checkRequirementsTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
+    import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
     val logger = Keys.streams.value.log
     val projectName = Keys.name.value
     logger.info(Feedback.logCheckRequirements(projectName))
@@ -450,46 +505,14 @@ trait Helper {
       if (errors.nonEmpty) sys.error(Feedback.fixRequirementErrors)
     }
 
-    // Using Sonatype publisher
-    if (PrivateKeys.releaseEarlyIsSonatype.value) Def.task {
-      logger.debug(Feedback.skipBintrayCredentialsCheck(projectName))
-      val sonatypeCredentials = getSonatypeCredentials.orElse(getExtraSonatypeCredentials)
-      sonatypeCredentials.foreach(persistExtraSonatypeCredentials)
-
-      val missingSonatypeCredentials = {
-        sonatypeCredentials.isEmpty &&
-        !Keys.isSnapshot.value &&
-        !Keys.state.value.interactive
-      }
-
-      val sonatypeInconsistentState = ThisPluginKeys.releaseEarlyNoGpg.value
-      check(
-        (missingSonatypeCredentials, Feedback.missingSonatypeCredentials),
-        (sonatypeInconsistentState, Feedback.SonatypeInconsistentGpgState)
-      )
-
-      // Using Bintray publisher
-    } else {
-      Def.task {
-        val missingBintrayCredentials = {
-          catching(classOf[NoSuchElementException])
-            .opt(bintray.BintrayKeys.bintrayEnsureCredentials.value)
-            .isEmpty
-        }
-
-        val bintrayInconsistentState =
-          ThisPluginKeys.releaseEarlyEnableSyncToMaven.value &&
-            ThisPluginKeys.releaseEarlyNoGpg.value
-
-        check(
-          (missingBintrayCredentials, Feedback.missingBintrayCredentials),
-          (bintrayInconsistentState, Feedback.BintrayInconsistentGpgState)
-        )
-      }
+    ThisPluginKeys.releaseEarlyWith.value match {
+      case SonatypePublisher => checkSonatypeRequirements(projectName, logger, check)
+      case BintrayPublisher => checkBintrayRequirements(logger, check)
     }
   }
 
   def validatePomTask: Def.Initialize[Task[Unit]] = Def.taskDyn {
+    import ReleaseEarlyPlugin.{autoImport => ThisPluginKeys}
     val logger = Keys.streams.value.log
     logger.info(Feedback.logValidatePom(Keys.name.value))
 
@@ -510,10 +533,7 @@ trait Helper {
 
     if (hasErrors) sys.error(Feedback.fixRequirementErrors)
 
-    // Ensure licenses before releasing
-    val useBintray = !PrivateKeys.releaseEarlyIsSonatype.value
-    if (useBintray) bintray.BintrayKeys.bintrayEnsureLicenses
-    else Def.task(())
+    ThisPluginKeys.releaseEarlyWith.value.explicitLicenseCheck.getOrElse(Def.task(()))
   }
 
   def runCommandAndRemaining(command: String): State => State = { st: State =>
