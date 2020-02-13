@@ -25,20 +25,18 @@ object BuildDefaults {
   def GitHubDev(handle: String, fullName: String, email: String) =
     Developer(handle, fullName, email, url(s"https://github.com/$handle"))
 
-  import com.typesafe.sbt.SbtPgp.{autoImport => PgpKeys}
+  import com.jsuereth.sbtpgp.SbtPgp.{autoImport => Pgp}
   import ch.epfl.scala.sbt.release.ReleaseEarlyPlugin.{autoImport => ReleaseEarlyKeys}
 
   private final val ThisRepo = GitHub("scalacenter", "sbt-release-early")
   final val globalPublishSettings: Seq[Def.Setting[_]] = Seq(
     // Global settings to set up repository-related settings
-    Keys.licenses := Seq(
-      "MPL-2.0" -> url("http://opensource.org/licenses/MPL-2.0")),
+    Keys.licenses := Seq("MPL-2.0" -> url("http://opensource.org/licenses/MPL-2.0")),
     Keys.homepage := Some(ThisRepo),
     Keys.scmInfo := Some(
-      ScmInfo(ThisRepo,
-              "scm:git:git@github.com:scalacenter/sbt-release-early.git")),
-    Keys.developers := List(
-      GitHubDev("jvican", "Jorge Vicente Cantero", "jorge@vican.me")),
+      ScmInfo(ThisRepo, "scm:git:git@github.com:scalacenter/sbt-release-early.git")
+    ),
+    Keys.developers := List(GitHubDev("jvican", "Jorge Vicente Cantero", "jorge@vican.me")),
     // Sbt bug: this does not work, it's overridden by the default settings.
     // In order to work, these settings have to be added to build.sbt... :'(
     // PgpKeys.pgpPublicRing in sbt.Global := file("/drone/.gnupg/pubring.asc"),
@@ -47,7 +45,6 @@ object BuildDefaults {
   )
 
   final val globalSettings: Seq[Def.Setting[_]] = Seq(
-    Keys.triggeredMessage in ThisBuild := Watched.clearWhenTriggered,
     Keys.watchSources += (Keys.baseDirectory in ThisBuild).value / "resources",
     Keys.testOptions in Test += sbt.Tests.Argument("-oD")
   ) ++ globalPublishSettings
@@ -56,7 +53,7 @@ object BuildDefaults {
     Keys.organization := "ch.epfl.scala",
     Keys.resolvers += Resolver.jcenterRepo,
     Keys.resolvers += Resolver.bintrayIvyRepo("scalacenter", "sbt-releases"),
-    Keys.updateOptions := Keys.updateOptions.value.withCachedResolution(true),
+    Keys.updateOptions := Keys.updateOptions.value.withCachedResolution(true)
   )
 
   final val projectSettings: Seq[Def.Setting[_]] = Seq(
