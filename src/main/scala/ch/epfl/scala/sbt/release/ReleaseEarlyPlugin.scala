@@ -94,7 +94,6 @@ object ReleaseEarly {
   import sbt.{Keys, Tags}
 
   import ReleaseEarlyPlugin.autoImport._
-  import xerial.sbt.Sonatype.{SonatypeCommand => SonatypeCommands}
   import xerial.sbt.Sonatype.{autoImport => Sonatype}
   import bintray.BintrayPlugin.{autoImport => Bintray}
   import sbtdynver.DynVerPlugin.{autoImport => DynVer}
@@ -174,18 +173,10 @@ object ReleaseEarly {
         val logger = Keys.sLog.value
         releaseEarlyWith.value match {
           case SonatypePublisher => Def.task {
-            // Sonatype requires instrumentation of publishTo to work.
-            // Reference: https://github.com/xerial/sbt-sonatype#buildsbt
             val projectVersion = Keys.version.value
             if (isOldSnapshot(projectVersion))
               logger.error(Feedback.unsupportedSnapshot(projectVersion))
-
-            Sonatype.sonatypeStagingRepositoryProfile.?.value match {
-              case Some(profile) =>
-                val root = sonatypeStagingId + s"/deployByRepositoryId/${profile.repositoryId}"
-                Some(sonatypeStagingId.name at root)
-              case None => Some(sbt.Opts.resolver.sonatypeStaging)
-            }
+            Sonatype.sonatypePublishToBundle.value
           }
           case BintrayPublisher => (Keys.publishTo in Bintray.bintray)
         }
@@ -266,11 +257,7 @@ object ReleaseEarly {
         val logger = Keys.streams.value.log
         val projectId = sbt.Reference.display(Keys.thisProjectRef.value)
         logger.info(Feedback.logReleaseSonatype(projectId))
-        // Trick to make sure that 'sonatypeRelease' does not change the name
-        import SonatypeCommands.{sonatypeRelease => _, sonatypeOpen => _}
-        // We don't use `sonatypeOpen` because `publishSigned` deduplicates the repository
-        val toRun = s";$projectId/publishSigned;sonatypeRelease"
-        runCommandAndRemaining(toRun)(state)
+        Pgp.PgpKeys.publishSigned.value
         ()
       }
     }
@@ -535,24 +522,6 @@ trait Helper {
     if (hasErrors) sys.error(Feedback.fixRequirementErrors)
 
     ThisPluginKeys.releaseEarlyWith.value.explicitLicenseCheck.getOrElse(Def.task(()))
-  }
-
-  def runCommandAndRemaining(command: String): State => State = { st: State =>
-    import sbt.complete.Parser
-    @annotation.tailrec
-    def runCommand(command: String, state: State): State = {
-      val nextState = Parser.parse(command, state.combinedParser) match {
-        case Right(cmd) => cmd()
-        case Left(msg)  => throw sys.error(s"Invalid programmatic input:\n$msg")
-      }
-      nextState.remainingCommands.toList match {
-        case Nil => nextState
-        case head :: tail =>
-          runCommand(head.commandLine, nextState.copy(remainingCommands = tail))
-      }
-    }
-    runCommand(command, st.copy(remainingCommands = Nil))
-      .copy(remainingCommands = st.remainingCommands)
   }
 
   import sbtdynver.GitDescribeOutput
